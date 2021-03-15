@@ -387,7 +387,7 @@ class Value_Model(nn.Module):
     def __init__(self, state_dim):
       super(Value_Model, self).__init__()
 
-      self.state_extractor      = nn.Sequential( nn.Linear(1, 64), nn.ReLU() )
+      self.state_extractor      = nn.Sequential( nn.Linear(2, 64), nn.ReLU() )
       self.nn_layer             = nn.Sequential( nn.Linear(320, 128), nn.ReLU(), nn.Linear(128, 64), nn.ReLU() )
       self.critic_layer         = nn.Sequential( nn.Linear(64, 1) )
         
@@ -485,7 +485,7 @@ class TrulyPPO():
     def compute_loss(self, action_datas, old_action_datas, values, old_values, next_values, actions, rewards, dones):
         advantages      = self.advantage_function.compute_advantages(rewards, values, next_values, dones)
         returns         = (advantages + values).detach()
-        advantages      = ((advantages - advantages.mean()) / (advantages.std() + 1e-6)).detach()       
+        advantages      = ((advantages - advantages.mean()) / (advantages.std() + 1e-5)).detach()       
 
         logprobs        = self.distribution.logprob(action_datas, actions) + 1e-5
         old_logprobs    = (self.distribution.logprob(old_action_datas, actions) + 1e-5).detach()
@@ -1006,7 +1006,7 @@ class Executor():
 
 ############## Hyperparameters ##############
 
-load_weights            = True # If you want to load the agent, set this to True
+load_weights            = False # If you want to load the agent, set this to True
 save_weights            = True # If you want to save the agent, set this to True
 is_training_mode        = True # If you want to train the agent, set this to True. But set this otherwise if you only want to test it
 use_gpu                 = True
