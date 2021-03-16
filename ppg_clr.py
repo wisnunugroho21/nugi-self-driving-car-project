@@ -1041,7 +1041,7 @@ n_saved                 = n_auxppg_update
 
 policy_kl_range         = 0.03
 policy_params           = 5
-value_clip              = 5.0
+value_clip              = 150.0
 entropy_coef            = 0.0
 vf_loss_coef            = 1.0
 batch_size              = 32
