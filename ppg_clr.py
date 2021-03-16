@@ -461,15 +461,15 @@ class CLR():
         similarity  = torch.nn.functional.cosine_similarity(first_encoded.unsqueeze(1), second_encoded.unsqueeze(0), dim = 2)
         return torch.nn.functional.cross_entropy(similarity, indexes)
 
-class JointAux():
+class JointAuxPpg():
     def __init__(self, distribution):
         self.distribution       = distribution
 
     def compute_loss(self, action_datas, old_action_datas, values, returns):
         Kl                  = self.distribution.kldivergence(old_action_datas, action_datas).mean()
-        aux_loss            = ((returns - values).pow(2) * 0.5).mean()
+        auxppg_loss         = ((returns - values).pow(2) * 0.5).mean()
 
-        return aux_loss + Kl
+        return auxppg_loss + Kl
 
 class TrulyPPO():
     def __init__(self, distribution, advantage_function, policy_kl_range = 0.0008, policy_params = 20, value_clip = 1.0, vf_loss_coef = 1.0, entropy_coef = 0.01, gamma = 0.95):
@@ -510,7 +510,7 @@ class TrulyPPO():
         loss = (critic_loss * self.vf_loss_coef) - (dist_entropy * self.entropy_coef) - pg_loss
         return loss
 
-class AuxMemory(Dataset):
+class AuxPpgMemory(Dataset):
     def __init__(self, capacity = 100000):
         self.capacity   = capacity
         self.images     = []
@@ -658,8 +658,8 @@ class ClrMemory(Dataset):
         del self.images[:]
 
 class AgentPpgClr():  
-    def __init__(self, Policy_Model, Value_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, policy_loss, aux_loss, clr_loss, 
-                policy_memory, aux_memory, clr_memory, PPO_epochs = 10, Aux_epochs = 10, Clr_epochs = 10, n_aux_update = 10, 
+    def __init__(self, Policy_Model, Value_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, clr_loss, 
+                policy_memory, auxppg_memory, clr_memory, PPO_epochs = 10, AuxPpg_epochs = 10, Clr_epochs = 10, n_auxppg_update = 10, 
                 is_training_mode = True, policy_kl_range = 0.03, policy_params = 5, value_clip = 1.0, entropy_coef = 0.0, vf_loss_coef = 1.0, 
                 batch_size = 32,  learning_rate = 3e-4, folder = 'model', use_gpu = True):   
 
@@ -670,7 +670,7 @@ class AgentPpgClr():
         self.vf_loss_coef       = vf_loss_coef
         self.batch_size         = batch_size  
         self.PPO_epochs         = PPO_epochs
-        self.Aux_epochs         = Aux_epochs
+        self.AuxPpg_epochs      = AuxPpg_epochs
         self.Clr_epochs         = Clr_epochs
         self.is_training_mode   = is_training_mode
         self.action_dim         = action_dim
@@ -678,7 +678,7 @@ class AgentPpgClr():
         self.learning_rate      = learning_rate
         self.folder             = folder
         self.use_gpu            = use_gpu
-        self.n_aux_update       = n_aux_update
+        self.n_auxppg_update    = n_auxppg_update
 
         self.device             = set_device(self.use_gpu)
 
@@ -697,22 +697,22 @@ class AgentPpgClr():
         self.policy_dist        = policy_dist
 
         self.policy_memory      = policy_memory
-        self.aux_memory         = aux_memory
+        self.auxppg_memory      = auxppg_memory
         self.clr_memory         = clr_memory
         
         self.policyLoss         = policy_loss
-        self.auxLoss            = aux_loss
+        self.auxppgLoss         = auxppg_loss
         self.clrLoss            = clr_loss
         
-        self.i_aux_update       = 0
+        self.i_auxppg_update    = 0
         self.i_ppo_update       = 0
 
         self.ppo_optimizer      = Adam(list(self.policy_cnn.parameters()) + list(self.policy.parameters()) + list(self.value_cnn.parameters()) + list(self.value.parameters()), lr = learning_rate)        
-        self.aux_optimizer      = Adam(list(self.policy_cnn.parameters()) + list(self.policy.parameters()), lr = learning_rate)
+        self.auxppg_optimizer      = Adam(list(self.policy_cnn.parameters()) + list(self.policy.parameters()), lr = learning_rate)
         self.clr_optimizer      = Adam(list(self.policy_cnn.parameters()) + list(self.policy_projection.parameters()) + list(self.value_cnn.parameters()) + list(self.value_projection.parameters()), lr = learning_rate) 
 
         self.ppo_scaler         = torch.cuda.amp.GradScaler()
-        self.aux_scaler         = torch.cuda.amp.GradScaler()
+        self.auxppg_scaler      = torch.cuda.amp.GradScaler()
         self.clr_scaler         = torch.cuda.amp.GradScaler()
         
         self.policy_old.load_state_dict(self.policy.state_dict())
@@ -752,8 +752,8 @@ class AgentPpgClr():
         self.ppo_scaler.step(self.ppo_optimizer)
         self.ppo_scaler.update()
 
-    def __training_aux(self, states, images):        
-        self.aux_optimizer.zero_grad()
+    def __training_auxppg(self, states, images):        
+        self.auxppg_optimizer.zero_grad()
         
         with torch.cuda.amp.autocast():
             out1                    = self.policy_cnn(images)
@@ -765,11 +765,11 @@ class AgentPpgClr():
             out3                    = self.policy_cnn_old(images, True)
             old_action_datas, _     = self.policy_old(out3, states, True)
 
-            loss = self.auxLoss.compute_loss(action_datas, old_action_datas, values, returns)
+            loss = self.auxppgLoss.compute_loss(action_datas, old_action_datas, values, returns)
 
-        self.aux_scaler.scale(loss).backward()
-        self.aux_scaler.step(self.aux_optimizer)
-        self.aux_scaler.update()
+        self.auxppg_scaler.scale(loss).backward()
+        self.auxppg_scaler.step(self.auxppg_optimizer)
+        self.auxppg_scaler.update()
 
     def __training_clr(self, first_images, second_images):
         self.clr_optimizer.zero_grad()
@@ -802,7 +802,7 @@ class AgentPpgClr():
                     rewards.float().to(self.device), dones.float().to(self.device), to_tensor(next_states, use_gpu = self.use_gpu), to_tensor(next_images, use_gpu = self.use_gpu))
 
         states, images, _, _, _, _, _ = self.policy_memory.get_all_items()
-        self.aux_memory.save_all(states, images)
+        self.auxppg_memory.save_all(states, images)
         self.policy_memory.clear_memory()
 
         self.policy_old.load_state_dict(self.policy.state_dict())
@@ -810,16 +810,16 @@ class AgentPpgClr():
         self.policy_cnn_old.load_state_dict(self.policy_cnn.state_dict())
         self.value_cnn_old.load_state_dict(self.value_cnn.state_dict())
 
-    def __update_aux(self):
-        dataloader  = DataLoader(self.aux_memory, self.batch_size, shuffle = False, num_workers = 2)
+    def __update_auxppg(self):
+        dataloader  = DataLoader(self.auxppg_memory, self.batch_size, shuffle = False, num_workers = 2)
 
-        for _ in range(self.Aux_epochs):       
+        for _ in range(self.AuxPpg_epochs):       
             for states, images in dataloader:
-                self.__training_aux(to_tensor(states, use_gpu = self.use_gpu), to_tensor(images, use_gpu = self.use_gpu))
+                self.__training_auxppg(to_tensor(states, use_gpu = self.use_gpu), to_tensor(images, use_gpu = self.use_gpu))
 
-        states, images = self.aux_memory.get_all_items()
+        states, images = self.auxppg_memory.get_all_items()
         self.clr_memory.save_all(images)
-        self.aux_memory.clear_memory()
+        self.auxppg_memory.clear_memory()
 
         self.policy_old.load_state_dict(self.policy.state_dict())
         self.policy_cnn_old.load_state_dict(self.policy_cnn.state_dict())
@@ -856,12 +856,12 @@ class AgentPpgClr():
 
     def update(self):
         self.__update_ppo()                
-        self.i_aux_update += 1
+        self.i_auxppg_update += 1
 
-        if self.i_aux_update % self.n_aux_update == 0 and self.i_aux_update != 0:
-            self.__update_aux()
+        if self.i_auxppg_update % self.n_auxppg_update == 0 and self.i_auxppg_update != 0:
+            self.__update_auxppg()
             self.__update_clr()
-            self.i_aux_update = 0
+            self.i_auxppg_update = 0
 
     def save_weights(self):
         torch.save({
@@ -872,10 +872,10 @@ class AgentPpgClr():
             'policy_pro_state_dict': self.policy_projection.state_dict(),
             'value_pro_state_dict': self.value_projection.state_dict(),
             'ppo_optimizer_state_dict': self.ppo_optimizer.state_dict(),
-            'aux_optimizer_state_dict': self.aux_optimizer.state_dict(),
+            'auxppg_optimizer_state_dict': self.auxppg_optimizer.state_dict(),
             'clr_optimizer_state_dict': self.clr_optimizer.state_dict(),
             'ppo_scaler_state_dict': self.ppo_scaler.state_dict(),
-            'aux_scaler_state_dict': self.aux_scaler.state_dict(),
+            'auxppg_scaler_state_dict': self.auxppg_scaler.state_dict(),
             'clr_scaler_state_dict': self.clr_scaler.state_dict()
             }, self.folder + '/model.tar')
         
@@ -891,10 +891,10 @@ class AgentPpgClr():
         self.policy_projection.load_state_dict(model_checkpoint['policy_pro_state_dict'])        
         self.value_projection.load_state_dict(model_checkpoint['value_pro_state_dict'])
         self.ppo_optimizer.load_state_dict(model_checkpoint['ppo_optimizer_state_dict'])        
-        self.aux_optimizer.load_state_dict(model_checkpoint['aux_optimizer_state_dict'])
+        self.auxppg_optimizer.load_state_dict(model_checkpoint['auxppg_optimizer_state_dict'])
         self.clr_optimizer.load_state_dict(model_checkpoint['clr_optimizer_state_dict'])   
         self.ppo_scaler.load_state_dict(model_checkpoint['ppo_scaler_state_dict'])        
-        self.aux_scaler.load_state_dict(model_checkpoint['aux_scaler_state_dict'])
+        self.auxppg_scaler.load_state_dict(model_checkpoint['auxppg_scaler_state_dict'])
         self.clr_scaler.load_state_dict(model_checkpoint['clr_scaler_state_dict'])     
 
         if self.is_training_mode:
@@ -1020,8 +1020,8 @@ n_plot_batch            = 1 # How many episode you want to plot the result
 n_iteration             = 1000000 # How many episode you want to run
 n_memory_clr            = 10000
 n_update                = 256 # How many episode before you update the Policy 
-n_aux_update            = 2
-n_saved                 = n_aux_update
+n_auxppg_update            = 2
+n_saved                 = n_auxppg_update
 
 policy_kl_range         = 0.03
 policy_params           = 5
@@ -1030,7 +1030,7 @@ entropy_coef            = 0.0
 vf_loss_coef            = 1.0
 batch_size              = 32
 PPO_epochs              = 5
-Aux_epochs              = 5
+AuxPpg_epochs           = 5
 Clr_epochs              = 4
 action_std              = 1.0
 gamma                   = 0.95
@@ -1051,11 +1051,11 @@ Policy_Dist         = BasicContinous
 Runner              = CarlaRunner
 Executor            = Executor
 Policy_loss         = TrulyPPO
-Aux_loss            = JointAux
+AuxPpg_loss         = JointAuxPpg
 Clr_loss            = CLR
 Wrapper             = env
 Policy_Memory       = PolicyMemory
-Aux_Memory          = AuxMemory
+AuxPpg_Memory       = AuxPpgMemory
 Clr_Memory          = ClrMemory
 Advantage_Function  = GeneralizedAdvantageEstimation
 
@@ -1081,16 +1081,16 @@ print('action_dim: ', action_dim)
 
 policy_dist         = Policy_Dist(use_gpu)
 advantage_function  = Advantage_Function(gamma)
-aux_memory          = Aux_Memory()
+auxppg_memory       = AuxPpg_Memory()
 policy_memory       = Policy_Memory()
 runner_memory       = Policy_Memory()
 clr_memory          = Clr_Memory(n_memory_clr)
-aux_loss            = Aux_loss(policy_dist)
+auxppg_loss         = AuxPpg_loss(policy_dist)
 policy_loss         = Policy_loss(policy_dist, advantage_function, policy_kl_range, policy_params, value_clip, vf_loss_coef, entropy_coef, gamma)
 clr_loss            = Clr_loss(use_gpu)
 
-agent = AgentPpgClr( Policy_Model, Value_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, policy_loss, aux_loss, clr_loss, 
-                policy_memory, aux_memory, clr_memory, PPO_epochs, Aux_epochs, Clr_epochs, n_aux_update, 
+agent = AgentPpgClr( Policy_Model, Value_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, clr_loss, 
+                policy_memory, auxppg_memory, clr_memory, PPO_epochs, AuxPpg_epochs, Clr_epochs, n_auxppg_update, 
                 is_training_mode, policy_kl_range, policy_params, value_clip, entropy_coef, vf_loss_coef, 
                 batch_size,  learning_rate, folder, use_gpu)
 
