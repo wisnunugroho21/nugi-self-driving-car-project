@@ -221,7 +221,7 @@ class CarlaEnv():
         dif_loc = math.sqrt(dif_x ** 2 + dif_y ** 2)
 
         done    = False
-        reward  = dif_loc        
+        reward  = (dif_loc * 100) - 1.0        
         
         image   = self.__process_image(self.cam_queue.get())
         if len(self.crossed_line_hist) > 0 or len(self.collision_hist) > 0 or loc.x >= -100 or loc.y >= -10 or self.cur_step >= self.max_step:
@@ -614,7 +614,8 @@ class ClrMemory(Dataset):
         if self.first_trans is None:
             self.first_trans = transforms.Compose([
                 transforms.RandomCrop(270),
-                transforms.Resize(320)
+                transforms.Resize(320),
+                transforms.GaussianBlur(3)
             ])
 
         if self.second_trans is None:
@@ -816,6 +817,8 @@ class AgentPpgClr():
             for states, images in dataloader:
                 self.__training_aux(to_tensor(states, use_gpu = self.use_gpu), to_tensor(images, use_gpu = self.use_gpu))
 
+        states, images = self.aux_memory.get_all_items()
+        self.clr_memory.save_all(images)
         self.aux_memory.clear_memory()
 
         self.policy_old.load_state_dict(self.policy.state_dict())
@@ -852,12 +855,12 @@ class AgentPpgClr():
         self.clr_memory.save_all(images)
 
     def update(self):
-        self.__update_ppo()
-        self.__update_clr()        
+        self.__update_ppo()                
         self.i_aux_update += 1
 
         if self.i_aux_update % self.n_aux_update == 0 and self.i_aux_update != 0:
             self.__update_aux()
+            self.__update_clr()
             self.i_aux_update = 0
 
     def save_weights(self):
