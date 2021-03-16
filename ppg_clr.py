@@ -216,8 +216,8 @@ class CarlaEnv():
         kmh     = math.sqrt(v.x ** 2 + v.y ** 2)
                 
         loc     = self.vehicle.get_location()
-        dif_x   = loc.x - prev_loc.x if loc.x - prev_loc.x > 0.05 else 0
-        dif_y   = loc.y - prev_loc.y if loc.y - prev_loc.y > 0.05 else 0
+        dif_x   = loc.x - prev_loc.x if loc.x - prev_loc.x >= 0.05 else 0
+        dif_y   = loc.y - prev_loc.y if loc.y - prev_loc.y >= 0.05 else 0
         dif_loc = math.sqrt(dif_x ** 2 + dif_y ** 2)
 
         done    = False
@@ -1009,7 +1009,7 @@ class Executor():
 
 ############## Hyperparameters ##############
 
-load_weights            = False # If you want to load the agent, set this to True
+load_weights            = True # If you want to load the agent, set this to True
 save_weights            = True # If you want to save the agent, set this to True
 is_training_mode        = True # If you want to train the agent, set this to True. But set this otherwise if you only want to test it
 use_gpu                 = True
@@ -1025,13 +1025,13 @@ n_saved                 = n_aux_update
 
 policy_kl_range         = 0.03
 policy_params           = 5
-value_clip              = 4.0
+value_clip              = 5.0
 entropy_coef            = 0.0
 vf_loss_coef            = 1.0
 batch_size              = 32
-PPO_epochs              = 4
-Aux_epochs              = 4
-Clr_epochs              = 2
+PPO_epochs              = 5
+Aux_epochs              = 5
+Clr_epochs              = 4
 action_std              = 1.0
 gamma                   = 0.95
 learning_rate           = 3e-4
