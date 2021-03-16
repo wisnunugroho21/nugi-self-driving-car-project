@@ -142,7 +142,6 @@ class CarlaEnv():
             cv2.imshow('', i)
             cv2.waitKey(1)
 
-        i = i / 255.0
         return i
 
     def __process_collision(self, event):
@@ -708,7 +707,7 @@ class AgentPpgClr():
         self.i_ppo_update       = 0
 
         self.ppo_optimizer      = Adam(list(self.policy_cnn.parameters()) + list(self.policy.parameters()) + list(self.value_cnn.parameters()) + list(self.value.parameters()), lr = learning_rate)        
-        self.auxppg_optimizer      = Adam(list(self.policy_cnn.parameters()) + list(self.policy.parameters()), lr = learning_rate)
+        self.auxppg_optimizer   = Adam(list(self.policy_cnn.parameters()) + list(self.policy.parameters()), lr = learning_rate)
         self.clr_optimizer      = Adam(list(self.policy_cnn.parameters()) + list(self.policy_projection.parameters()) + list(self.value_cnn.parameters()) + list(self.value_projection.parameters()), lr = learning_rate) 
 
         self.ppo_scaler         = torch.cuda.amp.GradScaler()
@@ -1020,7 +1019,7 @@ n_plot_batch            = 1 # How many episode you want to plot the result
 n_iteration             = 1000000 # How many episode you want to run
 n_memory_clr            = 10000
 n_update                = 256 # How many episode before you update the Policy 
-n_auxppg_update            = 2
+n_auxppg_update         = 2
 n_saved                 = n_auxppg_update
 
 policy_kl_range         = 0.03
