@@ -513,13 +513,18 @@ class AuxPpgMemory(Dataset):
     def __init__(self, capacity = 100000):
         self.capacity   = capacity
         self.images     = []
-        self.states     = []    
+        self.states     = []
+
+        self.trans  = transforms.Compose([
+            transforms.ToTensor()
+        ])    
 
     def __len__(self):
         return len(self.states)
 
     def __getitem__(self, idx):
-        return np.array(self.states[idx], dtype = np.float32), np.array(self.images[idx], dtype = np.float32)
+        images  = self.trans(self.images[idx])
+        return np.array(self.states[idx], dtype = np.float32), images.detach().cpu().numpy()
 
     def save_eps(self, state, image):
         if len(self) >= self.capacity:
@@ -557,13 +562,20 @@ class PolicyMemory(Dataset):
         self.next_states    = []
         self.next_images    = []
 
+        self.trans  = transforms.Compose([
+            transforms.ToTensor()
+        ])
+
     def __len__(self):
         return len(self.dones)
 
     def __getitem__(self, idx):
-        return np.array(self.states[idx], dtype = np.float32), np.array(self.images[idx], dtype = np.float32), np.array(self.actions[idx], dtype = np.float32), \
+        images      = self.trans(self.images[idx])
+        next_images = self.trans(self.next_images[idx])
+
+        return np.array(self.states[idx], dtype = np.float32), images.detach().cpu().numpy(), np.array(self.actions[idx], dtype = np.float32), \
             np.array([self.rewards[idx]], dtype = np.float32), np.array([self.dones[idx]], dtype = np.float32), \
-            np.array(self.next_states[idx], dtype = np.float32), np.array(self.next_images[idx], dtype = np.float32)       
+            np.array(self.next_states[idx], dtype = np.float32), next_images.detach().cpu().numpy()       
 
     def save_eps(self, state, image, action, reward, done, next_state, next_image):
         if len(self) >= self.capacity:
@@ -614,13 +626,15 @@ class ClrMemory(Dataset):
             self.first_trans = transforms.Compose([
                 transforms.RandomCrop(270),
                 transforms.Resize(320),
-                transforms.GaussianBlur(3)
+                transforms.GaussianBlur(3),
+                transforms.ToTensor()
             ])
 
         if self.second_trans is None:
             self.second_trans = transforms.Compose([                
                 transforms.RandomApply([transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)], p = 0.8),
-                transforms.RandomGrayscale(p = 0.2)
+                transforms.RandomGrayscale(p = 0.2),
+                transforms.ToTensor()
             ])
 
     def __len__(self):
