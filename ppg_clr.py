@@ -518,7 +518,8 @@ class AuxPpgMemory(Dataset):
         self.states     = []
 
         self.trans  = transforms.Compose([
-            transforms.ToTensor()
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])    
 
     def __len__(self):
@@ -565,7 +566,8 @@ class PolicyMemory(Dataset):
         self.next_images    = []
 
         self.trans  = transforms.Compose([
-            transforms.ToTensor()
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
 
     def __len__(self):
@@ -629,14 +631,16 @@ class ClrMemory(Dataset):
                 transforms.RandomCrop(270),
                 transforms.Resize(320),
                 transforms.GaussianBlur(3),
-                transforms.ToTensor()
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
             ])
 
         if self.second_trans is None:
             self.second_trans = transforms.Compose([                
                 transforms.RandomApply([transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)], p = 0.8),
                 transforms.RandomGrayscale(p = 0.2),
-                transforms.ToTensor()
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
             ])
 
     def __len__(self):
@@ -736,7 +740,8 @@ class AgentPpgClr():
         self.value_cnn_old.load_state_dict(self.value_cnn.state_dict())       
 
         self.trans  = transforms.Compose([
-            transforms.ToTensor()
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
 
         if is_training_mode:
