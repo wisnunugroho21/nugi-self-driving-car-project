@@ -20,6 +20,7 @@ import cv2
 import math
 import queue
 import random
+from PIL import Image
 
 try:
     sys.path.append(glob.glob("/home/nugroho/Projects/Simulator/Carla/PythonAPI/carla/dist/carla-*%d.%d-%s.egg" % (
@@ -132,8 +133,8 @@ class CarlaEnv():
         del self.actor_list[:]
 
     def __process_image(self, image):
-        image.convert(carla.ColorConverter.CityScapesPalette)
-
+        # image.convert(carla.ColorConverter.CityScapesPalette)        
+        
         i = np.array(image.raw_data)
         i = i.reshape((self.im_height, self.im_width, -1))
         i = i[:, :, :3]
@@ -142,6 +143,7 @@ class CarlaEnv():
             cv2.imshow('', i)
             cv2.waitKey(1)
 
+        i = Image.fromarray(i)
         return i
 
     def __process_collision(self, event):
@@ -641,7 +643,7 @@ class ClrMemory(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        images          = torch.FloatTensor(self.images[idx])
+        images          = self.images[idx] # torch.FloatTensor(self.images[idx])
 
         first_inputs    = self.first_trans(images)
         second_inputs   = self.second_trans(images)
@@ -732,6 +734,10 @@ class AgentPpgClr():
         self.value_old.load_state_dict(self.value.state_dict())
         self.policy_cnn_old.load_state_dict(self.policy_cnn.state_dict())
         self.value_cnn_old.load_state_dict(self.value_cnn.state_dict())       
+
+        self.trans  = transforms.Compose([
+            transforms.ToTensor()
+        ])
 
         if is_training_mode:
           self.policy.train()
@@ -850,7 +856,7 @@ class AgentPpgClr():
         self.value_cnn_old.load_state_dict(self.value_cnn.state_dict())
 
     def act(self, state, image):
-        state, image        = to_tensor(state, use_gpu = self.use_gpu, first_unsqueeze = True, detach = True), to_tensor(image, use_gpu = self.use_gpu, first_unsqueeze = True, detach = True)
+        state, image        = to_tensor(state, use_gpu = self.use_gpu, first_unsqueeze = True, detach = True), to_tensor(self.trans(image), use_gpu = self.use_gpu, first_unsqueeze = True, detach = True)
 
         out1                = self.policy_cnn(image)
         action_datas, _     = self.policy(out1, state)
@@ -944,7 +950,6 @@ class CarlaRunner():
         self.eps_time           = 0
         
         self.images, self.states    = self.env.reset()
-        self.images                 = np.transpose(self.images, (2, 0, 1)).reshape(3, 320, 320)
         self.memories               = memory        
 
     def run(self):
@@ -953,10 +958,9 @@ class CarlaRunner():
         for _ in range(self.n_update):
             action                                      = self.agent.act(self.states, self.images)
             next_image, next_state, reward, done, _     = self.env.step(action)
-            next_image                                  = np.transpose(next_image, (2, 0, 1)).reshape(3, 320, 320)
             
             if self.training_mode:
-                self.memories.save_eps(self.states.tolist(), self.images.tolist(), action, reward, float(done), next_state.tolist(), next_image.tolist())
+                self.memories.save_eps(self.states.tolist(), self.images, action, reward, float(done), next_state.tolist(), next_image)
                 
             self.images         = next_image
             self.states         = next_state
@@ -975,7 +979,6 @@ class CarlaRunner():
                     self.writer.add_scalar('Times', self.eps_time, self.i_episode)
 
                 self.images, self.states    = self.env.reset()
-                self.images                 = np.transpose(self.images, (2, 0, 1)).reshape(3, 320, 320)
                 self.total_reward           = 0
                 self.eps_time               = 0
 
@@ -1049,7 +1052,7 @@ action_std              = 1.0
 gamma                   = 0.95
 learning_rate           = 3e-4
 
-folder                  = 'weights/carla'
+folder                  = 'weights/carla1'
 env                     = CarlaEnv(im_height = 320, im_width = 320, im_preview = False, max_step = 512) # gym.make('BipedalWalker-v3') # gym.make('BipedalWalker-v3') for _ in range(2)] # CarlaEnv(im_height = 240, im_width = 240, im_preview = False, max_step = 512) # [gym.make(env_name) for _ in range(2)] # CarlaEnv(im_height = 240, im_width = 240, im_preview = False, seconds_per_episode = 3 * 60) # [gym.make(env_name) for _ in range(2)] # gym.make(env_name) # [gym.make(env_name) for _ in range(2)]
 
 state_dim           = None
