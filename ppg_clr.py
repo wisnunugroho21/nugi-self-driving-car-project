@@ -265,7 +265,7 @@ class AtrousSpatialPyramidConv2d(nn.Module):
         self.extractor3 = SpatialAtrousExtractor(dim_in, 8)
 
         self.out = nn.Sequential(
-            DepthwiseSeparableConv2d(3 * dim_in, dim_out, kernel_size = 1)
+            nn.Conv2d(3 * dim_in, dim_out, kernel_size = 1)
         )
 
     def forward(self, x):
@@ -628,17 +628,20 @@ class ClrMemory(Dataset):
 
         if self.first_trans is None:
             self.first_trans = transforms.Compose([
-                transforms.RandomCrop(270),
-                transforms.Resize(320),
-                transforms.GaussianBlur(3),
+                transforms.RandomResizedCrop(320),                           
+                transforms.RandomApply([transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)], p = 0.8),
+                transforms.RandomGrayscale(p = 0.2),
+                transforms.GaussianBlur(33),
                 transforms.ToTensor(),
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
             ])
 
         if self.second_trans is None:
-            self.second_trans = transforms.Compose([                
+            self.second_trans = transforms.Compose([     
+                transforms.RandomResizedCrop(320),                           
                 transforms.RandomApply([transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)], p = 0.8),
                 transforms.RandomGrayscale(p = 0.2),
+                transforms.GaussianBlur(33),
                 transforms.ToTensor(),
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
             ])
@@ -678,7 +681,7 @@ class ClrMemory(Dataset):
 
 class AgentPpgClr():  
     def __init__(self, Policy_Model, Value_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, clr_loss, 
-                policy_memory, auxppg_memory, clr_memory, PPO_epochs = 10, AuxPpg_epochs = 10, Clr_epochs = 10, n_auxppg_update = 10, 
+                policy_memory, auxppg_memory, clr_memory, PPO_epochs = 10, AuxPpg_epochs = 10, Clr_epochs = 10, n_ppo_update = 32, n_auxppg_update = 2, 
                 is_training_mode = True, policy_kl_range = 0.03, policy_params = 5, value_clip = 1.0, entropy_coef = 0.0, vf_loss_coef = 1.0, 
                 batch_size = 32,  learning_rate = 3e-4, folder = 'model', use_gpu = True):   
 
@@ -698,6 +701,7 @@ class AgentPpgClr():
         self.folder             = folder
         self.use_gpu            = use_gpu
         self.n_auxppg_update    = n_auxppg_update
+        self.n_ppo_update       = n_ppo_update
 
         self.device             = set_device(self.use_gpu)
 
@@ -811,7 +815,7 @@ class AgentPpgClr():
             out4        = self.policy_cnn(second_images)
             encoded4    = self.policy_projection(out4)
 
-            loss = self.clrLoss.compute_loss(encoded1, encoded2) + self.clrLoss.compute_loss(encoded3, encoded4)
+            loss = (self.clrLoss.compute_loss(encoded1, encoded2) + self.clrLoss.compute_loss(encoded3, encoded4)) / 2.0
 
         self.clr_scaler.scale(loss).backward()
         self.clr_scaler.step(self.clr_optimizer)
@@ -841,8 +845,6 @@ class AgentPpgClr():
             for states, images in dataloader:
                 self.__training_auxppg(to_tensor(states, use_gpu = self.use_gpu), to_tensor(images, use_gpu = self.use_gpu))
 
-        states, images = self.auxppg_memory.get_all_items()
-        self.clr_memory.save_all(images)
         self.auxppg_memory.clear_memory()
 
         self.policy_old.load_state_dict(self.policy.state_dict())
@@ -879,12 +881,16 @@ class AgentPpgClr():
         self.clr_memory.save_all(images)
 
     def update(self):
-        self.__update_ppo()                
-        self.i_auxppg_update += 1
+        self.__update_clr()   
+        self.i_ppo_update += 1
+
+        if self.i_ppo_update % self.n_ppo_update == 0 and self.i_ppo_update != 0:
+            self.__update_ppo()  
+            self.i_ppo_update = 0
+            self.i_auxppg_update += 1
 
         if self.i_auxppg_update % self.n_auxppg_update == 0 and self.i_auxppg_update != 0:
-            self.__update_auxppg()
-            self.__update_clr()
+            self.__update_auxppg()            
             self.i_auxppg_update = 0
 
     def save_weights(self):
@@ -1040,9 +1046,10 @@ reward_threshold        = 495 # Set threshold for reward. The learning will stop
 n_plot_batch            = 1 # How many episode you want to plot the result
 n_iteration             = 1000000 # How many episode you want to run
 n_memory_clr            = 10000
-n_update                = 256 # How many episode before you update the Policy 
+n_update                = 8 # How many episode before you update the Policy 
+n_ppo_update            = 32
 n_auxppg_update         = 2
-n_saved                 = n_auxppg_update
+n_saved                 = n_ppo_update * n_auxppg_update
 
 policy_kl_range         = 0.03
 policy_params           = 5
@@ -1111,7 +1118,7 @@ policy_loss         = Policy_loss(policy_dist, advantage_function, policy_kl_ran
 clr_loss            = Clr_loss(use_gpu)
 
 agent = AgentPpgClr( Policy_Model, Value_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, clr_loss, 
-                policy_memory, auxppg_memory, clr_memory, PPO_epochs, AuxPpg_epochs, Clr_epochs, n_auxppg_update, 
+                policy_memory, auxppg_memory, clr_memory, PPO_epochs, AuxPpg_epochs, Clr_epochs, n_ppo_update, n_auxppg_update, 
                 is_training_mode, policy_kl_range, policy_params, value_clip, entropy_coef, vf_loss_coef, 
                 batch_size,  learning_rate, folder, use_gpu)
 
