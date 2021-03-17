@@ -282,44 +282,72 @@ class CnnModel(nn.Module):
     def __init__(self):
       super(CnnModel, self).__init__()   
 
-      self.bn1 = nn.BatchNorm2d(32)
-      self.bn2 = nn.BatchNorm2d(64)
+      self.bn1 = nn.BatchNorm2d(16)
+      self.bn2 = nn.BatchNorm2d(32)
+      self.bn3 = nn.BatchNorm2d(64)
 
       self.conv1 = nn.Sequential(
         AtrousSpatialPyramidConv2d(3, 8),
         nn.ReLU(),
-        DepthwiseSeparableConv2d(8, 16, kernel_size = 4, stride = 2, padding = 1),
+        DepthwiseSeparableConv2d(8, 8, kernel_size = 4, stride = 2, padding = 1),
+        nn.ReLU(),
+        DepthwiseSeparableConv2d(8, 16, kernel_size = 3, stride = 1, padding = 1),
         nn.ReLU(),
       )
 
       self.conv2 = nn.Sequential(
         DepthwiseSeparableConv2d(16, 16, kernel_size = 4, stride = 2, padding = 1, bias = False),
         nn.ReLU(),
-        DepthwiseSeparableConv2d(16, 32, kernel_size = 4, stride = 2, padding = 1, bias = False),
+        DepthwiseSeparableConv2d(16, 16, kernel_size = 4, stride = 2, padding = 1, bias = False),
         nn.ReLU(),
       )
 
       self.conv3 = nn.Sequential(
-        DepthwiseSeparableConv2d(16, 32, kernel_size = 8, stride = 4, padding = 2, bias = False),
+        DepthwiseSeparableConv2d(16, 16, kernel_size = 8, stride = 4, padding = 2, bias = False),
         nn.ReLU(),
       )
 
       self.conv4 = nn.Sequential(
-        DepthwiseSeparableConv2d(32, 32, kernel_size = 4, stride = 2, padding = 1, bias = False),
+        DepthwiseSeparableConv2d(16, 32, kernel_size = 3, stride = 1, padding = 1),
         nn.ReLU(),
-        DepthwiseSeparableConv2d(32, 64, kernel_size = 4, stride = 2, padding = 1, bias = False),
+        DepthwiseSeparableConv2d(32, 32, kernel_size = 3, stride = 1, padding = 1),
         nn.ReLU(),
       )
 
       self.conv5 = nn.Sequential(
-        DepthwiseSeparableConv2d(32, 64, kernel_size = 8, stride = 4, padding = 2, bias = False),
+        DepthwiseSeparableConv2d(32, 32, kernel_size = 4, stride = 2, padding = 1, bias = False),
+        nn.ReLU(),
+        DepthwiseSeparableConv2d(32, 32, kernel_size = 4, stride = 2, padding = 1, bias = False),
+        nn.ReLU(),
+      )
+
+      self.conv6 = nn.Sequential(
+        DepthwiseSeparableConv2d(32, 32, kernel_size = 8, stride = 4, padding = 2, bias = False),
+        nn.ReLU(),
+      )
+
+      self.conv7 = nn.Sequential(
+        DepthwiseSeparableConv2d(32, 64, kernel_size = 3, stride = 1, padding = 1),
+        nn.ReLU(),
+        DepthwiseSeparableConv2d(64, 64, kernel_size = 3, stride = 1, padding = 1),
+        nn.ReLU(),
+      )
+
+      self.conv8 = nn.Sequential(
+        DepthwiseSeparableConv2d(64, 64, kernel_size = 3, stride = 1, padding = 1, bias = False),
+        nn.ReLU(),
+        DepthwiseSeparableConv2d(64, 64, kernel_size = 3, stride = 1, padding = 1, bias = False),
         nn.ReLU(),
       )
 
       self.conv_out = nn.Sequential(
-        DepthwiseSeparableConv2d(64, 128, kernel_size = 4, stride = 2, padding = 1),
+        DepthwiseSeparableConv2d(64, 128, kernel_size = 3, stride = 1, padding = 1),
         nn.ReLU(),
-        DepthwiseSeparableConv2d(128, 256, kernel_size = 4, stride = 2, padding = 1),
+        DepthwiseSeparableConv2d(128, 128, kernel_size = 4, stride = 2, padding = 1),
+        nn.ReLU(),
+        DepthwiseSeparableConv2d(128, 256, kernel_size = 3, stride = 1, padding = 1),
+        nn.ReLU(),
+        DepthwiseSeparableConv2d(256, 256, kernel_size = 4, stride = 2, padding = 1),
         nn.ReLU(),
       )
         
@@ -327,11 +355,12 @@ class CnnModel(nn.Module):
       i1  = self.conv1(image)
       i2  = self.conv2(i1)
       i3  = self.conv3(i1)
-      i23 = self.bn1(i2 + i3)
-      i4  = self.conv4(i23)
-      i5  = self.conv5(i23)
-      i45 = self.bn2(i4 + i5)
-      out = self.conv_out(i45)
+      i4  = self.conv4(self.bn1(i2 + i3))
+      i5  = self.conv5(i4)
+      i6  = self.conv6(i4)
+      i7  = self.conv7(self.bn2(i5 + i6))
+      i8  = self.conv8(i7)
+      out = self.conv_out(self.bn3(i7 + i8))
       out = out.mean([-1, -2])
 
       if detach:
@@ -364,11 +393,11 @@ class Policy_Model(nn.Module):
       self.std                  = torch.FloatTensor([1.0, 0.5, 0.5]).to(set_device(use_gpu))
 
       self.state_extractor      = nn.Sequential( nn.Linear(2, 64), nn.ReLU() )
-      self.nn_layer             = nn.Sequential( nn.Linear(320, 128), nn.ReLU(), nn.Linear(128, 64), nn.ReLU() )
+      self.nn_layer             = nn.Sequential( nn.Linear(320, 256), nn.ReLU(), nn.Linear(256, 128), nn.ReLU() )
 
-      self.critic_layer         = nn.Sequential( nn.Linear(64, 1) )
-      self.actor_tanh_layer     = nn.Sequential( nn.Linear(64, 1), nn.Tanh() )
-      self.actor_sigmoid_layer  = nn.Sequential( nn.Linear(64, 2), nn.Sigmoid() )            
+      self.critic_layer         = nn.Sequential( nn.Linear(128, 1) )
+      self.actor_tanh_layer     = nn.Sequential( nn.Linear(128, 1), nn.Tanh() )
+      self.actor_sigmoid_layer  = nn.Sequential( nn.Linear(128, 2), nn.Sigmoid() )            
         
     def forward(self, image, state, detach = False):
       s   = self.state_extractor(state)
@@ -389,8 +418,8 @@ class Value_Model(nn.Module):
       super(Value_Model, self).__init__()
 
       self.state_extractor      = nn.Sequential( nn.Linear(2, 64), nn.ReLU() )
-      self.nn_layer             = nn.Sequential( nn.Linear(320, 128), nn.ReLU(), nn.Linear(128, 64), nn.ReLU() )
-      self.critic_layer         = nn.Sequential( nn.Linear(64, 1) )
+      self.nn_layer             = nn.Sequential( nn.Linear(320, 256), nn.ReLU(), nn.Linear(256, 128), nn.ReLU() )
+      self.critic_layer         = nn.Sequential( nn.Linear(128, 1) )
         
     def forward(self, image, state, detach = False):
       s   = self.state_extractor(state)
@@ -708,13 +737,11 @@ class AgentPpgClr():
         self.policy             = Policy_Model(state_dim, action_dim, self.use_gpu).float().to(self.device)
         self.policy_old         = Policy_Model(state_dim, action_dim, self.use_gpu).float().to(self.device)
         self.policy_cnn         = CnnModel().float().to(self.device)
-        self.policy_cnn_old     = CnnModel().float().to(self.device)
         self.policy_projection  = ProjectionModel().float().to(self.device)
 
         self.value              = Value_Model(state_dim).float().to(self.device)
         self.value_old          = Value_Model(state_dim).float().to(self.device)
         self.value_cnn          = CnnModel().float().to(self.device)
-        self.value_cnn_old      = CnnModel().float().to(self.device)
         self.value_projection   = ProjectionModel().float().to(self.device)
 
         self.policy_dist        = policy_dist
@@ -730,8 +757,8 @@ class AgentPpgClr():
         self.i_auxppg_update    = 0
         self.i_ppo_update       = 0
 
-        self.ppo_optimizer      = Adam(list(self.policy_cnn.parameters()) + list(self.policy.parameters()) + list(self.value_cnn.parameters()) + list(self.value.parameters()), lr = learning_rate)        
-        self.auxppg_optimizer   = Adam(list(self.policy_cnn.parameters()) + list(self.policy.parameters()), lr = learning_rate)
+        self.ppo_optimizer      = Adam(list(self.policy.parameters()) + list(self.value.parameters()), lr = learning_rate)        
+        self.auxppg_optimizer   = Adam(list(self.policy.parameters()), lr = learning_rate)
         self.clr_optimizer      = Adam(list(self.policy_cnn.parameters()) + list(self.policy_projection.parameters()) + list(self.value_cnn.parameters()) + list(self.value_projection.parameters()), lr = learning_rate) 
 
         self.ppo_scaler         = torch.cuda.amp.GradScaler()
@@ -740,8 +767,7 @@ class AgentPpgClr():
         
         self.policy_old.load_state_dict(self.policy.state_dict())
         self.value_old.load_state_dict(self.value.state_dict())
-        self.policy_cnn_old.load_state_dict(self.policy_cnn.state_dict())
-        self.value_cnn_old.load_state_dict(self.value_cnn.state_dict())       
+        self.value_cnn.load_state_dict(self.policy_cnn.state_dict())  
 
         self.trans  = transforms.Compose([
             transforms.ToTensor(),
@@ -759,16 +785,16 @@ class AgentPpgClr():
         self.ppo_optimizer.zero_grad()
 
         with torch.cuda.amp.autocast():
-            out1                = self.policy_cnn(images)
+            out1                = self.policy_cnn(images, True)
             action_datas, _     = self.policy(out1, states)
 
-            out2                = self.value_cnn(images)
+            out2                = self.value_cnn(images, True)
             values              = self.value(out2, states)
 
-            out3                = self.policy_cnn_old(images, True)
+            out3                = self.policy_cnn(images, True)
             old_action_datas, _ = self.policy_old(out3, states, True)
 
-            out4                = self.value_cnn_old(images, True)
+            out4                = self.value_cnn(images, True)
             old_values          = self.value_old(out4, states, True)
 
             out5                = self.value_cnn(next_images, True)
@@ -784,13 +810,13 @@ class AgentPpgClr():
         self.auxppg_optimizer.zero_grad()
         
         with torch.cuda.amp.autocast():
-            out1                    = self.policy_cnn(images)
+            out1                    = self.policy_cnn(images, True)
             action_datas, values    = self.policy(out1, states)
 
             out2                    = self.value_cnn(images, True)
             returns                 = self.value(out2, states, True)
 
-            out3                    = self.policy_cnn_old(images, True)
+            out3                    = self.policy_cnn(images, True)
             old_action_datas, _     = self.policy_old(out3, states, True)
 
             loss = self.auxppgLoss.compute_loss(action_datas, old_action_datas, values, returns)
@@ -835,8 +861,6 @@ class AgentPpgClr():
 
         self.policy_old.load_state_dict(self.policy.state_dict())
         self.value_old.load_state_dict(self.value.state_dict())
-        self.policy_cnn_old.load_state_dict(self.policy_cnn.state_dict())
-        self.value_cnn_old.load_state_dict(self.value_cnn.state_dict())
 
     def __update_auxppg(self):
         dataloader  = DataLoader(self.auxppg_memory, self.batch_size, shuffle = False, num_workers = 2)
@@ -846,9 +870,7 @@ class AgentPpgClr():
                 self.__training_auxppg(to_tensor(states, use_gpu = self.use_gpu), to_tensor(images, use_gpu = self.use_gpu))
 
         self.auxppg_memory.clear_memory()
-
         self.policy_old.load_state_dict(self.policy.state_dict())
-        self.policy_cnn_old.load_state_dict(self.policy_cnn.state_dict())
 
     def __update_clr(self):
         dataloader  = DataLoader(self.clr_memory, self.batch_size, shuffle = True, num_workers = 2)
@@ -859,9 +881,6 @@ class AgentPpgClr():
 
         self.clr_memory.clear_memory()
         
-        self.policy_cnn_old.load_state_dict(self.policy_cnn.state_dict())
-        self.value_cnn_old.load_state_dict(self.value_cnn.state_dict())
-
     def act(self, state, image):
         state, image        = to_tensor(state, use_gpu = self.use_gpu, first_unsqueeze = True, detach = True), to_tensor(self.trans(image), use_gpu = self.use_gpu, first_unsqueeze = True, detach = True)
 
@@ -1036,7 +1055,7 @@ class Executor():
 
 ############## Hyperparameters ##############
 
-load_weights            = True # If you want to load the agent, set this to True
+load_weights            = False # If you want to load the agent, set this to True
 save_weights            = True # If you want to save the agent, set this to True
 is_training_mode        = True # If you want to train the agent, set this to True. But set this otherwise if you only want to test it
 use_gpu                 = True
