@@ -222,7 +222,7 @@ class CarlaEnv():
         dif_loc = math.sqrt(dif_x ** 2 + dif_y ** 2)
 
         done    = False
-        reward  = (dif_loc * 100) - 1.0        
+        reward  = (dif_loc * 10) - 0.1        
         
         image   = self.__process_image(self.cam_queue.get())
         if len(self.crossed_line_hist) > 0 or len(self.collision_hist) > 0 or loc.x >= -100 or loc.y >= -10 or self.cur_step >= self.max_step:
@@ -1046,7 +1046,7 @@ n_saved                 = n_auxppg_update
 
 policy_kl_range         = 0.03
 policy_params           = 5
-value_clip              = 150.0
+value_clip              = 20.0
 entropy_coef            = 0.0
 vf_loss_coef            = 1.0
 batch_size              = 32
