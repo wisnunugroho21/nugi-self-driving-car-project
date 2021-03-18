@@ -736,13 +736,12 @@ class AgentPpgClr():
 
         self.policy             = Policy_Model(state_dim, action_dim, self.use_gpu).float().to(self.device)
         self.policy_old         = Policy_Model(state_dim, action_dim, self.use_gpu).float().to(self.device)
-        self.policy_cnn         = CnnModel().float().to(self.device)
-        self.policy_projection  = ProjectionModel().float().to(self.device)
 
         self.value              = Value_Model(state_dim).float().to(self.device)
         self.value_old          = Value_Model(state_dim).float().to(self.device)
-        self.value_cnn          = CnnModel().float().to(self.device)
-        self.value_projection   = ProjectionModel().float().to(self.device)
+
+        self.clr_cnn            = CnnModel().float().to(self.device)
+        self.clr_projection     = ProjectionModel().float().to(self.device)
 
         self.policy_dist        = policy_dist
 
@@ -759,7 +758,7 @@ class AgentPpgClr():
 
         self.ppo_optimizer      = Adam(list(self.policy.parameters()) + list(self.value.parameters()), lr = learning_rate)        
         self.auxppg_optimizer   = Adam(list(self.policy.parameters()), lr = learning_rate)
-        self.clr_optimizer      = Adam(list(self.policy_cnn.parameters()) + list(self.policy_projection.parameters()) + list(self.value_cnn.parameters()) + list(self.value_projection.parameters()), lr = learning_rate) 
+        self.clr_optimizer      = Adam(list(self.clr_cnn.parameters()) + list(self.clr_projection.parameters()), lr = learning_rate) 
 
         self.ppo_scaler         = torch.cuda.amp.GradScaler()
         self.auxppg_scaler      = torch.cuda.amp.GradScaler()
@@ -767,7 +766,6 @@ class AgentPpgClr():
         
         self.policy_old.load_state_dict(self.policy.state_dict())
         self.value_old.load_state_dict(self.value.state_dict())
-        self.value_cnn.load_state_dict(self.policy_cnn.state_dict())  
 
         self.trans  = transforms.Compose([
             transforms.ToTensor(),
@@ -785,20 +783,14 @@ class AgentPpgClr():
         self.ppo_optimizer.zero_grad()
 
         with torch.cuda.amp.autocast():
-            out1                = self.policy_cnn(images, True)
-            action_datas, _     = self.policy(out1, states)
+            res                 = self.clr_cnn(images, True)
+            next_res            = self.clr_cnn(next_images, True)
 
-            out2                = self.value_cnn(images, True)
-            values              = self.value(out2, states)
-
-            out3                = self.policy_cnn(images, True)
-            old_action_datas, _ = self.policy_old(out3, states, True)
-
-            out4                = self.value_cnn(images, True)
-            old_values          = self.value_old(out4, states, True)
-
-            out5                = self.value_cnn(next_images, True)
-            next_values         = self.value(out5, next_states, True)
+            action_datas, _     = self.policy(res, states)
+            values              = self.value(res, states)
+            old_action_datas, _ = self.policy_old(res, states, True)
+            old_values          = self.value_old(res, states, True)
+            next_values         = self.value(next_res, next_states, True)
 
             loss = self.policyLoss.compute_loss(action_datas, old_action_datas, values, old_values, next_values, actions, rewards, dones)
         
@@ -810,14 +802,11 @@ class AgentPpgClr():
         self.auxppg_optimizer.zero_grad()
         
         with torch.cuda.amp.autocast():
-            out1                    = self.policy_cnn(images, True)
-            action_datas, values    = self.policy(out1, states)
+            res                     = self.clr_cnn(images, True)
 
-            out2                    = self.value_cnn(images, True)
-            returns                 = self.value(out2, states, True)
-
-            out3                    = self.policy_cnn(images, True)
-            old_action_datas, _     = self.policy_old(out3, states, True)
+            action_datas, values    = self.policy(res, states)
+            returns                 = self.value(res, states, True)
+            old_action_datas, _     = self.policy_old(res, states, True)
 
             loss = self.auxppgLoss.compute_loss(action_datas, old_action_datas, values, returns)
 
@@ -829,19 +818,13 @@ class AgentPpgClr():
         self.clr_optimizer.zero_grad()
 
         with torch.cuda.amp.autocast():
-            out1        = self.policy_cnn(first_images)
-            encoded1    = self.policy_projection(out1)
+            out1        = self.clr_cnn(first_images)
+            encoded1    = self.clr_projection(out1)
 
-            out2        = self.value_cnn(second_images)
-            encoded2    = self.value_projection(out2)
+            out2        = self.clr_cnn(second_images)
+            encoded2    = self.clr_projection(out2)
 
-            out3        = self.value_cnn(first_images)
-            encoded3    = self.value_projection(out3)
-
-            out4        = self.policy_cnn(second_images)
-            encoded4    = self.policy_projection(out4)
-
-            loss = (self.clrLoss.compute_loss(encoded1, encoded2) + self.clrLoss.compute_loss(encoded3, encoded4)) / 2.0
+            loss = (self.clrLoss.compute_loss(encoded1, encoded2) + self.clrLoss.compute_loss(encoded2, encoded1)) / 2.0
 
         self.clr_scaler.scale(loss).backward()
         self.clr_scaler.step(self.clr_optimizer)
@@ -884,8 +867,8 @@ class AgentPpgClr():
     def act(self, state, image):
         state, image        = to_tensor(state, use_gpu = self.use_gpu, first_unsqueeze = True, detach = True), to_tensor(self.trans(image), use_gpu = self.use_gpu, first_unsqueeze = True, detach = True)
 
-        out1                = self.policy_cnn(image)
-        action_datas, _     = self.policy(out1, state)
+        res                 = self.clr_cnn(image)
+        action_datas, _     = self.policy(res, state)
         
         if self.is_training_mode:
             action = self.policy_dist.sample(action_datas)
@@ -916,10 +899,8 @@ class AgentPpgClr():
         torch.save({
             'policy_state_dict': self.policy.state_dict(),
             'value_state_dict': self.value.state_dict(),
-            'policy_cnn_state_dict': self.policy_cnn.state_dict(),
-            'value_cnn_state_dict': self.value_cnn.state_dict(),
-            'policy_pro_state_dict': self.policy_projection.state_dict(),
-            'value_pro_state_dict': self.value_projection.state_dict(),
+            'clr_cnn_state_dict': self.clr_cnn.state_dict(),
+            'clr_pro_state_dict': self.clr_projection.state_dict(),
             'ppo_optimizer_state_dict': self.ppo_optimizer.state_dict(),
             'auxppg_optimizer_state_dict': self.auxppg_optimizer.state_dict(),
             'clr_optimizer_state_dict': self.clr_optimizer.state_dict(),
@@ -935,10 +916,8 @@ class AgentPpgClr():
         model_checkpoint = torch.load(self.folder + '/model.tar', map_location = device)
         self.policy.load_state_dict(model_checkpoint['policy_state_dict'])        
         self.value.load_state_dict(model_checkpoint['value_state_dict'])
-        self.policy_cnn.load_state_dict(model_checkpoint['policy_cnn_state_dict'])        
-        self.value_cnn.load_state_dict(model_checkpoint['value_cnn_state_dict'])
-        self.policy_projection.load_state_dict(model_checkpoint['policy_pro_state_dict'])        
-        self.value_projection.load_state_dict(model_checkpoint['value_pro_state_dict'])
+        self.clr_cnn.load_state_dict(model_checkpoint['clr_cnn_state_dict'])
+        self.clr_projection.load_state_dict(model_checkpoint['clr_pro_state_dict'])
         self.ppo_optimizer.load_state_dict(model_checkpoint['ppo_optimizer_state_dict'])        
         self.auxppg_optimizer.load_state_dict(model_checkpoint['auxppg_optimizer_state_dict'])
         self.clr_optimizer.load_state_dict(model_checkpoint['clr_optimizer_state_dict'])   
@@ -1078,7 +1057,7 @@ vf_loss_coef            = 1.0
 batch_size              = 32
 PPO_epochs              = 5
 AuxPpg_epochs           = 5
-Clr_epochs              = 4
+Clr_epochs              = 5
 action_std              = 1.0
 gamma                   = 0.95
 learning_rate           = 3e-4
