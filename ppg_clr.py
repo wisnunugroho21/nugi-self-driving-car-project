@@ -847,7 +847,10 @@ class AgentPpgClr():
             for states, images in dataloader:
                 self.__training_auxppg(to_tensor(states, use_gpu = self.use_gpu), to_tensor(images, use_gpu = self.use_gpu))
 
+        _, images = self.auxppg_memory.get_all_items()
+        self.clr_memory.save_all(images)
         self.auxppg_memory.clear_memory()
+
         self.policy_old.load_state_dict(self.policy.state_dict())
 
     def __update_clr(self):
@@ -875,7 +878,6 @@ class AgentPpgClr():
     def save_memory(self, policy_memory):
         states, images, actions, rewards, dones, next_states, next_images = policy_memory.get_all_items()
         self.policy_memory.save_all(states, images, actions, rewards, dones, next_states, next_images)
-        self.clr_memory.save_all(images)
 
     def update(self):
         self.__update_ppo()
