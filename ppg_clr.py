@@ -370,9 +370,9 @@ class ProjectionModel(nn.Module):
       self.nn_layer   = nn.Sequential(
         nn.Linear(128, 128),
         nn.ReLU(),
-        nn.Linear(128, 64),
+        nn.Linear(128, 128),
         nn.ReLU(),
-        nn.Linear(64, 32)
+        nn.Linear(128, 128)
       )
 
     def forward(self, image, detach = False):      
@@ -751,7 +751,7 @@ class AgentPpgClr():
         self.i_auxppg_update    = 0
         self.i_ppo_update       = 0
 
-        self.ppo_optimizer      = Adam(list(self.policy.parameters()) + list(self.value.parameters()), lr = learning_rate)        
+        self.ppo_optimizer      = Adam(list(self.policy.parameters()) + list(self.value.parameters()) + list(self.clr_cnn.parameters()), lr = learning_rate)        
         self.auxppg_optimizer   = Adam(list(self.policy.parameters()), lr = learning_rate)
         self.clr_optimizer      = Adam(list(self.clr_cnn.parameters()) + list(self.clr_projection.parameters()), lr = learning_rate) 
 
@@ -778,7 +778,7 @@ class AgentPpgClr():
         self.ppo_optimizer.zero_grad()
 
         with torch.cuda.amp.autocast():
-            res                 = self.clr_cnn(images, True)
+            res                 = self.clr_cnn(images)
             next_res            = self.clr_cnn(next_images, True)
 
             action_datas, _     = self.policy(res, states)
@@ -878,16 +878,12 @@ class AgentPpgClr():
         self.clr_memory.save_all(images)
 
     def update(self):
-        self.__update_clr()   
-        self.i_ppo_update += 1
-
-        if self.i_ppo_update % self.n_ppo_update == 0 and self.i_ppo_update != 0:
-            self.__update_ppo()  
-            self.i_ppo_update = 0
-            self.i_auxppg_update += 1
+        self.__update_ppo()
+        self.i_auxppg_update += 1
 
         if self.i_auxppg_update % self.n_auxppg_update == 0 and self.i_auxppg_update != 0:
-            self.__update_auxppg()            
+            self.__update_auxppg()
+            self.__update_clr()             
             self.i_auxppg_update = 0
 
     def save_weights(self):
@@ -1039,8 +1035,8 @@ reward_threshold        = 495 # Set threshold for reward. The learning will stop
 n_plot_batch            = 1 # How many episode you want to plot the result
 n_iteration             = 1000000 # How many episode you want to run
 n_memory_clr            = 10000
-n_update                = 8 # How many episode before you update the Policy 
-n_ppo_update            = 32
+n_update                = 256 # How many episode before you update the Policy 
+n_ppo_update            = 1
 n_auxppg_update         = 2
 n_saved                 = n_ppo_update * n_auxppg_update
 
