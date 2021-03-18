@@ -248,8 +248,7 @@ class SpatialAtrousExtractor(nn.Module):
         super(SpatialAtrousExtractor, self).__init__()        
 
         self.spatial_atrous = nn.Sequential(
-            nn.Conv2d(dim, dim, kernel_size = 3, stride = 1, padding = rate, dilation = rate, bias = False, groups = dim),            
-            nn.ReLU()
+            nn.Conv2d(dim, dim, kernel_size = 3, stride = 1, padding = rate, dilation = rate, bias = False, groups = dim)
 		)
 
     def forward(self, x):
