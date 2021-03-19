@@ -203,13 +203,13 @@ class AgentCQL():
             'value_scaler_state_dict': self.value_scaler.state_dict(),
             'soft_q_scaler_state_dict': self.soft_q_scaler.state_dict(),
             'auxclr_scaler_state_dict': self.auxclr_scaler.state_dict()
-            }, self.folder + '/model.tar')
+            }, self.folder + '/cql.tar')
         
     def load_weights(self, device = None):
         if device == None:
             device = self.device
 
-        model_checkpoint = torch.load(self.folder + '/model.tar', map_location = device)
+        model_checkpoint = torch.load(self.folder + '/cql.tar', map_location = device)
         self.policy.load_state_dict(model_checkpoint['policy_state_dict'])        
         self.value.load_state_dict(model_checkpoint['value_state_dict'])
         self.soft_q1.load_state_dict(model_checkpoint['soft_q1_state_dict'])        

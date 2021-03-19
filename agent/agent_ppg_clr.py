@@ -204,13 +204,13 @@ class AgentPpgClr():
             'ppo_scaler_state_dict': self.ppo_scaler.state_dict(),
             'auxppg_scaler_state_dict': self.auxppg_scaler.state_dict(),
             'auxclr_scaler_state_dict': self.auxclr_scaler.state_dict()
-            }, self.folder + '/model.tar')
+            }, self.folder + '/ppg_clr.tar')
         
     def load_weights(self, device = None):
         if device == None:
             device = self.device
 
-        model_checkpoint = torch.load(self.folder + '/model.tar', map_location = device)
+        model_checkpoint = torch.load(self.folder + '/ppg_clr.tar', map_location = device)
         self.policy.load_state_dict(model_checkpoint['policy_state_dict'])        
         self.value.load_state_dict(model_checkpoint['value_state_dict'])
         self.cnn.load_state_dict(model_checkpoint['cnn_state_dict'])
