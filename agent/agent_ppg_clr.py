@@ -37,7 +37,7 @@ class AgentPpgClr():
         self.value              = Value_Model(state_dim).float().to(self.device)
         self.value_old          = Value_Model(state_dim).float().to(self.device)
 
-        self.clr_cnn            = CnnModel().float().to(self.device)
+        self.cnn            = CnnModel().float().to(self.device)
         self.auxclr_projection  = ProjectionModel().float().to(self.device)
 
         self.policy_dist        = policy_dist
@@ -53,9 +53,9 @@ class AgentPpgClr():
         self.i_auxppg_update    = 0
         self.i_ppo_update       = 0
 
-        self.ppo_optimizer      = Adam(list(self.policy.parameters()) + list(self.value.parameters()) + list(self.clr_cnn.parameters()), lr = learning_rate)        
+        self.ppo_optimizer      = Adam(list(self.policy.parameters()) + list(self.value.parameters()) + list(self.cnn.parameters()), lr = learning_rate)        
         self.auxppg_optimizer   = Adam(list(self.policy.parameters()), lr = learning_rate)
-        self.auxclr_optimizer   = Adam(list(self.clr_cnn.parameters()) + list(self.auxclr_projection.parameters()), lr = learning_rate) 
+        self.auxclr_optimizer   = Adam(list(self.cnn.parameters()) + list(self.auxclr_projection.parameters()), lr = learning_rate) 
 
         self.ppo_scaler         = torch.cuda.amp.GradScaler()
         self.auxppg_scaler      = torch.cuda.amp.GradScaler()
@@ -80,8 +80,8 @@ class AgentPpgClr():
         self.ppo_optimizer.zero_grad()
 
         with torch.cuda.amp.autocast():
-            res                 = self.clr_cnn(images)
-            next_res            = self.clr_cnn(next_images, True)
+            res                 = self.cnn(images)
+            next_res            = self.cnn(next_images, True)
             
             old_action_datas, _ = self.policy_old(res, states, True)
             old_values          = self.value_old(res, states, True)
@@ -100,7 +100,7 @@ class AgentPpgClr():
         self.auxppg_optimizer.zero_grad()
         
         with torch.cuda.amp.autocast():
-            res                     = self.clr_cnn(images, True)
+            res                     = self.cnn(images, True)
             
             returns                 = self.value(res, states, True)
             old_action_datas, _     = self.policy_old(res, states, True)
@@ -117,10 +117,10 @@ class AgentPpgClr():
         self.auxclr_optimizer.zero_grad()
 
         with torch.cuda.amp.autocast():
-            out1        = self.clr_cnn(first_images)
+            out1        = self.cnn(first_images)
             encoded1    = self.auxclr_projection(out1)
 
-            out2        = self.clr_cnn(second_images)
+            out2        = self.cnn(second_images)
             encoded2    = self.auxclr_projection(out2)
 
             loss = (self.auxclrLoss.compute_loss(encoded1, encoded2) + self.auxclrLoss.compute_loss(encoded2, encoded1)) / 2.0
@@ -169,7 +169,7 @@ class AgentPpgClr():
     def act(self, state, image):
         state, image        = to_tensor(state, use_gpu = self.use_gpu, first_unsqueeze = True, detach = True), to_tensor(self.trans(image), use_gpu = self.use_gpu, first_unsqueeze = True, detach = True)
 
-        res                 = self.clr_cnn(image)
+        res                 = self.cnn(image)
         action_datas, _     = self.policy(res, state)
         
         if self.is_training_mode:
@@ -196,7 +196,7 @@ class AgentPpgClr():
         torch.save({
             'policy_state_dict': self.policy.state_dict(),
             'value_state_dict': self.value.state_dict(),
-            'clr_cnn_state_dict': self.clr_cnn.state_dict(),
+            'cnn_state_dict': self.cnn.state_dict(),
             'auxclr_pro_state_dict': self.auxclr_projection.state_dict(),
             'ppo_optimizer_state_dict': self.ppo_optimizer.state_dict(),
             'auxppg_optimizer_state_dict': self.auxppg_optimizer.state_dict(),
@@ -213,7 +213,7 @@ class AgentPpgClr():
         model_checkpoint = torch.load(self.folder + '/model.tar', map_location = device)
         self.policy.load_state_dict(model_checkpoint['policy_state_dict'])        
         self.value.load_state_dict(model_checkpoint['value_state_dict'])
-        self.clr_cnn.load_state_dict(model_checkpoint['clr_cnn_state_dict'])
+        self.cnn.load_state_dict(model_checkpoint['cnn_state_dict'])
         self.auxclr_projection.load_state_dict(model_checkpoint['auxclr_pro_state_dict'])
         self.ppo_optimizer.load_state_dict(model_checkpoint['ppo_optimizer_state_dict'])        
         self.auxppg_optimizer.load_state_dict(model_checkpoint['auxppg_optimizer_state_dict'])
