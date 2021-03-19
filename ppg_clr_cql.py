@@ -387,7 +387,7 @@ class Policy_Model(nn.Module):
 
       self.std                  = torch.FloatTensor([1.0, 0.5, 0.5]).to(set_device(use_gpu))
 
-      self.state_extractor      = nn.Sequential( nn.Linear(2, 32), nn.ReLU() )
+      self.state_extractor      = nn.Sequential( nn.Linear(1, 32), nn.ReLU() )
       self.nn_layer             = nn.Sequential( nn.Linear(288, 480), nn.ReLU(), nn.Linear(480, 128), nn.ReLU() )
 
       self.critic_layer         = nn.Sequential( nn.Linear(128, 1) )
@@ -412,11 +412,30 @@ class Value_Model(nn.Module):
     def __init__(self, state_dim):
       super(Value_Model, self).__init__()
 
-      self.state_extractor      = nn.Sequential( nn.Linear(2, 32), nn.ReLU() )
+      self.state_extractor      = nn.Sequential( nn.Linear(1, 32), nn.ReLU() )
       self.nn_layer             = nn.Sequential( nn.Linear(288, 480), nn.ReLU(), nn.Linear(480, 128), nn.ReLU() )
       self.critic_layer         = nn.Sequential( nn.Linear(128, 1) )
         
     def forward(self, image, state, detach = False):
+      s   = self.state_extractor(state)
+      x   = torch.cat([image, s], -1)
+      x   = self.nn_layer(x)
+
+      if detach:
+        return self.critic_layer(x).detach()
+      else:
+        return self.critic_layer(x)
+
+class Q_Model(nn.Module):
+    def __init__(self, state_dim):
+      super(Value_Model, self).__init__()
+
+      self.state_extractor      = nn.Sequential( nn.Linear(4, 32), nn.ReLU() )
+      self.nn_layer             = nn.Sequential( nn.Linear(288, 480), nn.ReLU(), nn.Linear(480, 128), nn.ReLU() )
+      self.critic_layer         = nn.Sequential( nn.Linear(128, 1) )
+        
+    def forward(self, image, state, action, detach = False):
+      s   = torch.cat([state, action], -1)
       s   = self.state_extractor(state)
       x   = torch.cat([image, s], -1)
       x   = self.nn_layer(x)
@@ -534,6 +553,38 @@ class TrulyPPO():
 
         loss = (critic_loss * self.vf_loss_coef) - (dist_entropy * self.entropy_coef) - pg_loss
         return loss
+
+class CqlLoss():
+    def __init__(self, gamma = 0.99):
+        self.gamma = gamma
+
+    def compute_loss(self, naive_predicted_q_value, predicted_q_value, reward, done, next_value):
+        cql_regularizer = naive_predicted_q_value - predicted_q_value
+
+        target_q_value  = (reward + (1 - done) * self.gamma * next_value).detach()
+        td_error        = ((target_q_value - predicted_q_value).pow(2) * 0.5).mean()
+
+        return td_error + cql_regularizer
+
+class OffVLoss():
+    def __init__(self, distribution):
+        self.distribution       = distribution
+
+    def compute_loss(self, predicted_value, q_value1, q_value2):
+        target_value    = torch.min(q_value1, q_value2).detach()
+        value_loss      = ((target_value - predicted_value).pow(2) * 0.5).mean()
+
+        return value_loss
+
+class OffPolicyLoss():
+    def __init__(self, distribution):
+        self.distribution       = distribution
+
+    def compute_loss(self, q_value1, q_value2):
+        new_q_value = torch.min(q_value1, q_value2)
+        policy_loss = (new_q_value).mean()
+
+        return policy_loss * -1
 
 class AuxPpgMemory(Dataset):
     def __init__(self, capacity = 100000):
@@ -702,6 +753,152 @@ class AuxClrMemory(Dataset):
 
     def clear_memory(self):
         del self.images[:]
+
+class AgentCQL():
+    def __init__(self, Q_Model, Value_Model, Policy_Model, state_dim, action_dim, distribution, q_loss, v_loss, policy_loss, memory, is_training_mode = True, 
+        batch_size = 32, epochs = 1, soft_tau = 0.95, learning_rate = 3e-4, folder = 'model', use_gpu = True):
+
+        self.batch_size         = batch_size
+        self.is_training_mode   = is_training_mode
+        self.action_dim         = action_dim
+        self.state_dim          = state_dim
+        self.learning_rate      = learning_rate
+        self.folder             = folder
+        self.use_gpu            = use_gpu
+        self.epochs             = epochs
+        self.soft_tau           = soft_tau
+
+        self.value              = Value_Model(state_dim, self.use_gpu)
+        self.soft_q1            = Q_Model(state_dim, action_dim, self.use_gpu)
+        self.soft_q2            = Q_Model(state_dim, action_dim, self.use_gpu)
+        self.policy             = Policy_Model(state_dim, action_dim, self.use_gpu)
+
+        self.clr_cnn            = CnnModel().float().to(self.device)
+        self.auxclr_projection  = ProjectionModel().float().to(self.device)
+
+        self.distribution       = distribution
+        self.memory             = memory
+        
+        self.qLoss              = q_loss
+        self.vLoss              = v_loss
+        self.policyLoss         = policy_loss
+
+        self.scaler             = torch.cuda.amp.GradScaler()
+        self.device             = set_device(self.use_gpu)
+        self.i_update           = 0
+        
+        self.soft_q_optimizer   = Adam(list(self.soft_q1.parameters()) + list(self.soft_q2.parameters()), lr = learning_rate)
+        self.value_optimizer    = Adam(self.value.parameters(), lr = learning_rate)
+        self.policy_optimizer   = Adam(self.policy.parameters(), lr = learning_rate)
+
+    def __training_q(self, states, images, actions, rewards, dones, next_states, next_images):
+        self.soft_q_optimizer.zero_grad()
+
+        res                         = self.clr_cnn(images)
+        next_res                    = self.clr_cnn(next_images, True)
+
+        action_datas                = self.policy(res, states, True)
+        predicted_actions           = self.distribution.sample(action_datas).detach()
+
+        naive_predicted_q_value1    = self.soft_q1(res, states, predicted_actions)
+        predicted_q_value1          = self.soft_q1(res, states, actions)
+
+        naive_predicted_q_value2    = self.soft_q2(res, states, predicted_actions)
+        predicted_q_value2          = self.soft_q2(res, states, actions)
+        
+        next_value                  = self.value(next_res, next_states, True)
+
+        loss = self.qLoss.compute_loss(naive_predicted_q_value1, predicted_q_value1, rewards, dones, next_value) + self.qLoss.compute_loss(naive_predicted_q_value2, predicted_q_value2, rewards, dones, next_value)        
+        loss.backward()
+
+        self.soft_q_optimizer.step()        
+
+    def __training_values(self, states, images):
+        self.value_optimizer.zero_grad()
+
+        res                 = self.clr_cnn(images, True)
+
+        action_datas        = self.policy(res, states, True)
+        predicted_actions   = self.distribution.sample(action_datas).detach()
+
+        q_value1            = self.soft_q1(res, states, predicted_actions, True)
+        q_value2            = self.soft_q2(res, states, predicted_actions, True)
+        predicted_value     = self.value(res, states)
+
+        loss = self.vLoss.compute_loss(predicted_value, action_datas, actions, q_value1, q_value2)
+        loss.backward()
+
+        self.value_optimizer.step()
+
+    def __training_policy(self, states):
+        self.policy_optimizer.zero_grad()
+
+        action_datas    = self.policy(states)
+        actions         = self.distribution.sample(action_datas)
+
+        q_value1        = self.soft_q1(states, actions)
+        q_value2        = self.soft_q2(states, actions)
+
+        loss = self.policyLoss.compute_loss(action_datas, actions, q_value1, q_value2)
+        loss.backward()
+
+        self.policy_optimizer.step()
+
+    def save_memory(self, policy_memory):
+        states, actions, rewards, dones, next_states = policy_memory.get_all_items()
+        self.memory.save_all(states, actions, rewards, dones, next_states)
+        
+    def act(self, state):
+        state               = to_tensor(state, use_gpu = self.use_gpu, first_unsqueeze = True, detach = True)
+        action_datas        = self.policy(state)
+        
+        if self.is_training_mode:
+            action = self.distribution.sample(action_datas)
+        else:
+            action = self.distribution.act_deterministic(action_datas)
+              
+        return to_numpy(action, self.use_gpu)
+
+    def update(self):
+        if len(self.memory) > self.batch_size:
+            for _ in range(self.epochs):
+                dataloader  = DataLoader(self.memory, self.batch_size, shuffle = True, num_workers = 2)
+                states, actions, rewards, dones, next_states = next(iter(dataloader))
+
+                self.__training_q(to_tensor(states, use_gpu = self.use_gpu), actions.float().to(self.device), rewards.float().to(self.device), 
+                    dones.float().to(self.device), to_tensor(next_states, use_gpu = self.use_gpu), self.soft_q1, self.soft_q1_optimizer)
+
+                self.__training_q(to_tensor(states, use_gpu = self.use_gpu), actions.float().to(self.device), rewards.float().to(self.device), 
+                    dones.float().to(self.device), to_tensor(next_states, use_gpu = self.use_gpu), self.soft_q2, self.soft_q2_optimizer)
+
+                self.__training_values(to_tensor(states, use_gpu = self.use_gpu))
+                self.__training_policy(to_tensor(states, use_gpu = self.use_gpu))
+
+            for target_param, param in zip(self.target_value.parameters(), self.value.parameters()):
+                target_param.data.copy_(target_param.data * (1.0 - self.soft_tau) + param.data * self.soft_tau)
+
+    def save_weights(self):
+        torch.save({
+            'model_state_dict': self.policy.state_dict(),
+            'optimizer_state_dict': self.ppo_optimizer.state_dict()
+            }, self.folder + '/policy.tar')
+        
+        torch.save({
+            'model_state_dict': self.value.state_dict(),
+            'optimizer_state_dict': self.aux_optimizer.state_dict()
+            }, self.folder + '/value.tar')
+        
+    def load_weights(self, device = None):
+        if device == None:
+            device = self.device
+
+        policy_checkpoint = torch.load(self.folder + '/policy.tar', map_location = device)
+        self.policy.load_state_dict(policy_checkpoint['model_state_dict'])
+        self.ppo_optimizer.load_state_dict(policy_checkpoint['optimizer_state_dict'])
+
+        value_checkpoint = torch.load(self.folder + '/value.tar', map_location = device)
+        self.value.load_state_dict(value_checkpoint['model_state_dict'])
+        self.aux_optimizer.load_state_dict(value_checkpoint['optimizer_state_dict'])
 
 class AgentPpgClr():  
     def __init__(self, Policy_Model, Value_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, auxclr_loss, 
@@ -1103,10 +1300,10 @@ advantage_function  = Advantage_Function(gamma)
 auxppg_memory       = AuxPpg_Memory()
 policy_memory       = Policy_Memory()
 runner_memory       = Policy_Memory()
-auxclr_memory       = AuxClr_Memory(n_memory_auxclr)
+auxclr_memory          = AuxClr_Memory(n_memory_auxclr)
 auxppg_loss         = AuxPpg_loss(policy_dist)
 policy_loss         = Policy_loss(policy_dist, advantage_function, policy_kl_range, policy_params, value_clip, vf_loss_coef, entropy_coef, gamma)
-auxclr_loss         = AuxClr_loss(use_gpu)
+auxclr_loss            = AuxClr_loss(use_gpu)
 
 agent = AgentPpgClr( Policy_Model, Value_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, auxclr_loss, 
                 policy_memory, auxppg_memory, auxclr_memory, PPO_epochs, AuxPpg_epochs, AuxClr_epochs, n_ppo_update, n_auxppg_update, 
