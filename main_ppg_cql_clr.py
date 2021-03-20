@@ -87,7 +87,7 @@ AuxClr_Memory       = AuxClrMemory
 Advantage_Function  = GeneralizedAdvantageEstimation
 Agent               = AgentPpgClr
 
-env                 = [CarlaEnv(im_height = 320, im_width = 320, im_preview = False, max_step = 512) for _ in range(n_agent)] # gym.make('BipedalWalker-v3') # gym.make('BipedalWalker-v3') for _ in range(2)] # CarlaEnv(im_height = 240, im_width = 240, im_preview = False, max_step = 512) # [gym.make(env_name) for _ in range(2)] # CarlaEnv(im_height = 240, im_width = 240, im_preview = False, seconds_per_episode = 3 * 60) # [gym.make(env_name) for _ in range(2)] # gym.make(env_name) # [gym.make(env_name) for _ in range(2)]
+env                 = [CarlaEnv(im_height = 320, im_width = 320, im_preview = False, max_step = 512, index_pos = i) for i in range(n_agent)] # gym.make('BipedalWalker-v3') # gym.make('BipedalWalker-v3') for _ in range(2)] # CarlaEnv(im_height = 240, im_width = 240, im_preview = False, max_step = 512) # [gym.make(env_name) for _ in range(2)] # CarlaEnv(im_height = 240, im_width = 240, im_preview = False, seconds_per_episode = 3 * 60) # [gym.make(env_name) for _ in range(2)] # gym.make(env_name) # [gym.make(env_name) for _ in range(2)]
 Wrapper             = env
 #####################################################################################################################################################
 
@@ -97,16 +97,16 @@ torch.manual_seed(20)
 os.environ['PYTHONHASHSEED'] = str(20)
 
 if state_dim is None:
-    state_dim = Wrapper.get_obs_dim()
+    state_dim = Wrapper[0].get_obs_dim()
 print('state_dim: ', state_dim)
 
-if Wrapper.is_discrete():
+if Wrapper[0].is_discrete():
     print('discrete')
 else:
     print('continous')
 
 if action_dim is None:
-    action_dim = Wrapper.get_action_dim()
+    action_dim = Wrapper[0].get_action_dim()
 print('action_dim: ', action_dim)
 
 policy_dist         = [Policy_Dist(use_gpu) for _ in range(n_agent + 1)]
@@ -131,10 +131,10 @@ agentPgg = [
 agentCql = AgentCqlClr( Policy_Model, Value_Model, Q_Model, Cnn_Model, Projection_Model, state_dim, action_dim, policy_dist, cql_loss, offvalue_loss, offpolicy_loss, auxclr_loss[-1], 
         policy_memory[-1], auxclr_memory[-1], is_training_mode, batch_size, cql_epochs, auxclr_epochs, learning_rate, folder, use_gpu)
 
-# ray.init()
+ray.init()
 runners = ray.put([
-    Runner(agentPgg, Wrapper, runner_memory, is_training_mode, render, n_update, Wrapper.is_discrete, max_action, SummaryWriter(), n_plot_batch)
-        for _ in range(n_agent)
+    Runner(agentPgg, Wrapper[i], runner_memory, is_training_mode, render, n_update, Wrapper[i].is_discrete, max_action, SummaryWriter(), n_plot_batch)
+        for i in range(n_agent)
 ])
 
 child_executors     = [Child_Executor.remote(agentPgg[i], runners[i], i, load_weights, save_weights) for i in range(n_agent)]

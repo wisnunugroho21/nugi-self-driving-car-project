@@ -22,7 +22,7 @@ except IndexError:
 import carla
 
 class CarlaEnv():
-    def __init__(self, im_height = 480, im_width = 480, im_preview = False, max_step = 512):
+    def __init__(self, im_height = 480, im_width = 480, im_preview = False, max_step = 512, index_pos = None):
         self.cur_step           = 0
         self.collision_hist     = []
         self.crossed_line_hist  = []
@@ -38,6 +38,7 @@ class CarlaEnv():
         self.im_width               = im_width
         self.im_preview             = im_preview
         self.max_step               = max_step
+        self.index_pos              = index_pos
 
         self.observation_space      = Box(low = -1.0, high = 1.0, shape = (im_height, im_width))
         self.action_space           = Box(low = -1.0, high = 1.0, shape = (2, 1))
@@ -65,6 +66,13 @@ class CarlaEnv():
         for actor in self.actor_list:
             actor.destroy()
         del self.actor_list[:]
+
+    def __get_pos(self):
+        if self.index_pos is not None:
+            return self.init_pos[self.index_pos]
+        else:
+            idx_pos = np.random.randint(len(self.init_pos))
+            return self.init_pos[idx_pos]
 
     def __process_image(self, image):
         # image.convert(carla.ColorConverter.CityScapesPalette)        
@@ -104,9 +112,8 @@ class CarlaEnv():
             actor.destroy()
         del self.actor_list[:]        
 
-        idx_pos = np.random.randint(len(self.init_pos))
-        pos     = carla.Transform(carla.Location(x = self.init_pos[idx_pos][0], y = self.init_pos[idx_pos][1], z = 1.0), 
-            carla.Rotation(pitch = 0, yaw = self.init_pos[idx_pos][2], roll = 0))
+        pos = self.__get_pos()
+        pos = carla.Transform(carla.Location(x = pos[0], y = pos[1], z = 1.0), carla.Rotation(pitch = 0, yaw = pos[2], roll = 0))
         
         self.vehicle    = self.world.spawn_actor(self.model_3, pos)        
         self.vehicle.apply_control(carla.VehicleControl(throttle = 0, brake = 1.0, steer = 0))        

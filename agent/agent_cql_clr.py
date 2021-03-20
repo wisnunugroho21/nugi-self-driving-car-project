@@ -22,9 +22,9 @@ class AgentCqlClr():
 
         self.device             = set_device(self.use_gpu)        
         
-        self.soft_q1            = Q_Model(state_dim, action_dim, self.use_gpu).float().to(self.device)
-        self.soft_q2            = Q_Model(state_dim, action_dim, self.use_gpu).float().to(self.device)
-        self.value              = Value_Model(state_dim, self.use_gpu).float().to(self.device)
+        self.soft_q1            = Q_Model(state_dim, action_dim).float().to(self.device)
+        self.soft_q2            = Q_Model(state_dim, action_dim).float().to(self.device)
+        self.value              = Value_Model(state_dim).float().to(self.device)
         self.policy             = Policy_Model(state_dim, action_dim, self.use_gpu).float().to(self.device)
 
         self.cnn                = CnnModel().float().to(self.device)
