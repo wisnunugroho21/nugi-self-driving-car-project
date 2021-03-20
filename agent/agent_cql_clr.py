@@ -177,17 +177,6 @@ class AgentCQL():
     def update(self):
         self.__update_offpolicy()
         self.__update_auxclr()
-
-    def save_weights(self):
-        torch.save({
-            'model_state_dict': self.policy.state_dict(),
-            'optimizer_state_dict': self.ppo_optimizer.state_dict()
-            }, self.folder + '/policy.tar')
-        
-        torch.save({
-            'model_state_dict': self.value.state_dict(),
-            'optimizer_state_dict': self.aux_optimizer.state_dict()
-            }, self.folder + '/value.tar')
         
     def save_weights(self):
         torch.save({
