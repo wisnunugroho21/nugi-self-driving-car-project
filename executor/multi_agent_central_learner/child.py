@@ -2,10 +2,12 @@ import ray
 
 @ray.remote(num_gpus=0.25)
 class ChildExecutor():
-    def __init__(self, agent, runner, tag, load_weights = False):
+    def __init__(self, agent, runner, tag, load_weights = False, save_weights = False):
         self.agent  = agent
         self.runner = runner
         self.tag    = tag
+
+        self.save_weights   = save_weights
 
         if load_weights:
             self.agent.load_weights()
@@ -16,6 +18,9 @@ class ChildExecutor():
         self.agent.save_memory(memories)
 
         self.agent.update()
-        self.agent.save_weights()
+
+        if self.save_weights:
+            self.agent.save_weights()
+            print('weights saved')
 
         return memories, self.tag
