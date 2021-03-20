@@ -1,6 +1,6 @@
 import ray
 
-@ray.remote()
+@ray.remote(num_gpus=0.25)
 class ChildExecutor():
     def __init__(self, agent, runner, tag, load_weights = False):
         self.agent  = agent

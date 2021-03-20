@@ -12,6 +12,8 @@ class CentralLearnerExecutor():
         self.n_saved            = n_saved
 
     def execute(self):
+        ray.init(num_gpus = 1)
+
         start = time.time()
         print('Running the training!!')
 
