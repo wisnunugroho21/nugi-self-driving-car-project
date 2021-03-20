@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from helper.pytorch import set_device
 
-class Q_Model(nn.Module):
+class QModel(nn.Module):
     def __init__(self, state_dim):
       super(Q_Model, self).__init__()
 

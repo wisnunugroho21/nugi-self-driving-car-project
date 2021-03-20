@@ -2,6 +2,7 @@ import os
 import numpy as np
 import random
 import torch
+import ray
 from torch.utils.tensorboard import SummaryWriter
 
 from environment.carla import CarlaEnv
@@ -9,9 +10,10 @@ from model.carla.policy_model import PolicyModel
 from model.carla.value_model import ValueModel
 from model.carla.cnn_model import CnnModel
 from model.carla.projection_model import ProjectionModel
-from model.carla.q_model import Q_Model
+from model.carla.q_model import QModel
 from distribution.normal import NormalDist
-from executor.standard import Executor
+from executor.multi_agent_central_learner.central_learner import CentralLearnerExecutor
+from executor.multi_agent_central_learner.child import ChildExecutor
 from runner.carla_runner import CarlaRunner
 from loss.ppo.truly_ppo import TrulyPPO
 from loss.cql.cql import Cql
@@ -52,6 +54,7 @@ batch_size              = 32
 ppo_epochs              = 5
 auxppg_epochs           = 5
 auxclr_epochs           = 5
+cql_epochs              = 5
 action_std              = 1.0
 gamma                   = 0.95
 learning_rate           = 3e-4
@@ -66,10 +69,12 @@ max_action          = 1
 Policy_Model        = PolicyModel
 Value_Model         = ValueModel
 Cnn_Model           = CnnModel
-ProjectionModel     = ProjectionModel
+Q_Model             = QModel
+Projection_Model    = ProjectionModel
 Policy_Dist         = NormalDist
 Runner              = CarlaRunner
-Executor            = Executor
+Central_Executor    = CentralLearnerExecutor
+Child_Executor      = ChildExecutor
 Policy_loss         = TrulyPPO
 AuxPpg_loss         = JointAuxPpg
 AuxClr_loss         = Clr
@@ -116,13 +121,22 @@ cql_loss            = Cql_loss()
 offvalue_loss       = OffValue_loss()
 offpolicy_loss      = OffPolicy_loss()
 
-agentPgg = AgentPpgClr( Policy_Model, Value_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, auxclr_loss, 
-                policy_memory, auxppg_memory, auxclr_memory, ppo_epochs, auxppg_epochs, auxclr_epochs, n_aux_update, 
-                is_training_mode, policy_kl_range, policy_params, value_clip, entropy_coef, vf_loss_coef, 
-                batch_size,  learning_rate, folder, use_gpu)
+agentPgg = [
+    AgentPpgClr( Policy_Model, Value_Model, Cnn_Model, Projection_Model, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, auxclr_loss, policy_memory, auxppg_memory, auxclr_memory, ppo_epochs, auxppg_epochs, auxclr_epochs, n_aux_update, 
+                is_training_mode, policy_kl_range, policy_params, value_clip, entropy_coef, vf_loss_coef, batch_size,  learning_rate, folder, use_gpu)
+        for _ in range(2)
+]
+
+agentCql = AgentCqlClr( Policy_Model, Value_Model, Q_Model, Cnn_Model, Projection_Model, state_dim, action_dim, policy_dist, cql_loss, offvalue_loss, offpolicy_loss, auxclr_loss, 
+        policy_memory, auxclr_memory, is_training_mode, batch_size, cql_epochs, auxclr_epochs, learning_rate, folder, use_gpu)
 
 # ray.init()
-runner      = Runner(agent, Wrapper, runner_memory, is_training_mode, render, n_update, Wrapper.is_discrete, max_action, SummaryWriter(), n_plot_batch) # [Runner.remote(i_env, render, training_mode, n_update, Wrapper.is_discrete(), agent, max_action, None, n_plot_batch) for i_env in env]
-executor    = Executor(agent, n_iteration, runner, save_weights, n_saved, load_weights, is_training_mode)
+runners = ray.put([
+        Runner(agentPgg, Wrapper, runner_memory, is_training_mode, render, n_update, Wrapper.is_discrete, max_action, SummaryWriter(), n_plot_batch)
+            for _ in range(2)
+        ])
 
-executor.execute()
+child_executors     = [Child_Executor.remote(agentPgg[i], runners[i], i, load_weights, save_weights) for i in range(2)]
+central_executor    = Central_Executor(agentCql, n_iteration, child_executors, save_weights, n_saved)
+
+central_executor.execute()
