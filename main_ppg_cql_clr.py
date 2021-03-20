@@ -44,6 +44,7 @@ n_update                = 256 # How many episode before you update the Policy
 n_ppo_update            = 1
 n_aux_update            = 2
 n_saved                 = n_ppo_update * n_aux_update
+n_agent                 = 2
 
 policy_kl_range         = 0.03
 policy_params           = 5
@@ -60,7 +61,6 @@ gamma                   = 0.95
 learning_rate           = 3e-4
 
 folder                  = 'weights/carla2'
-env                     = CarlaEnv(im_height = 320, im_width = 320, im_preview = False, max_step = 512) # gym.make('BipedalWalker-v3') # gym.make('BipedalWalker-v3') for _ in range(2)] # CarlaEnv(im_height = 240, im_width = 240, im_preview = False, max_step = 512) # [gym.make(env_name) for _ in range(2)] # CarlaEnv(im_height = 240, im_width = 240, im_preview = False, seconds_per_episode = 3 * 60) # [gym.make(env_name) for _ in range(2)] # gym.make(env_name) # [gym.make(env_name) for _ in range(2)]
 
 state_dim           = None
 action_dim          = None
@@ -81,13 +81,14 @@ AuxClr_loss         = Clr
 Cql_loss            = Cql
 OffValue_loss       = OffVLoss
 OffPolicy_loss      = OffPolicyLoss
-Wrapper             = env
 Policy_Memory       = PolicyMemory
 AuxPpg_Memory       = AuxPpgMemory
 AuxClr_Memory       = AuxClrMemory
 Advantage_Function  = GeneralizedAdvantageEstimation
 Agent               = AgentPpgClr
 
+env                 = [CarlaEnv(im_height = 320, im_width = 320, im_preview = False, max_step = 512) for _ in range(n_agent)] # gym.make('BipedalWalker-v3') # gym.make('BipedalWalker-v3') for _ in range(2)] # CarlaEnv(im_height = 240, im_width = 240, im_preview = False, max_step = 512) # [gym.make(env_name) for _ in range(2)] # CarlaEnv(im_height = 240, im_width = 240, im_preview = False, seconds_per_episode = 3 * 60) # [gym.make(env_name) for _ in range(2)] # gym.make(env_name) # [gym.make(env_name) for _ in range(2)]
+Wrapper             = env
 #####################################################################################################################################################
 
 random.seed(20)
@@ -108,35 +109,35 @@ if action_dim is None:
     action_dim = Wrapper.get_action_dim()
 print('action_dim: ', action_dim)
 
-policy_dist         = Policy_Dist(use_gpu)
-advantage_function  = Advantage_Function(gamma)
-auxppg_memory       = AuxPpg_Memory()
-policy_memory       = Policy_Memory()
-runner_memory       = Policy_Memory()
-auxclr_memory       = AuxClr_Memory(n_memory_auxclr)
-auxppg_loss         = AuxPpg_loss(policy_dist)
-policy_loss         = Policy_loss(policy_dist, advantage_function, policy_kl_range, policy_params, value_clip, vf_loss_coef, entropy_coef, gamma)
-auxclr_loss         = AuxClr_loss(use_gpu)
+policy_dist         = [Policy_Dist(use_gpu) for _ in range(n_agent + 1)]
+advantage_function  = [Advantage_Function(gamma) for _ in range(n_agent)]
+auxppg_memory       = [AuxPpg_Memory() for _ in range(n_agent)]
+policy_memory       = [Policy_Memory() for _ in range(n_agent + 1)]
+runner_memory       = [Policy_Memory() for _ in range(n_agent)]
+auxclr_memory       = [AuxClr_Memory(n_memory_auxclr) for _ in range(n_agent + 1)]
+auxppg_loss         = [AuxPpg_loss(policy_dist[i]) for i in range(n_agent)]
+policy_loss         = [Policy_loss(policy_dist[i], advantage_function[i], policy_kl_range, policy_params, value_clip, vf_loss_coef, entropy_coef, gamma) for i in range(n_agent)]
+auxclr_loss         = [AuxClr_loss(use_gpu) for _ in range(n_agent + 1)]
 cql_loss            = Cql_loss()
 offvalue_loss       = OffValue_loss()
 offpolicy_loss      = OffPolicy_loss()
 
 agentPgg = [
-    AgentPpgClr( Policy_Model, Value_Model, Cnn_Model, Projection_Model, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, auxclr_loss, policy_memory, auxppg_memory, auxclr_memory, ppo_epochs, auxppg_epochs, auxclr_epochs, n_aux_update, 
-                is_training_mode, policy_kl_range, policy_params, value_clip, entropy_coef, vf_loss_coef, batch_size,  learning_rate, folder, use_gpu)
-        for _ in range(2)
+    AgentPpgClr( Policy_Model, Value_Model, Cnn_Model, Projection_Model, state_dim, action_dim, policy_dist[i], policy_loss[i], auxppg_loss[i], auxclr_loss[i], policy_memory[i], 
+            auxppg_memory[i], auxclr_memory[i], ppo_epochs, auxppg_epochs, auxclr_epochs, n_aux_update, is_training_mode, policy_kl_range, policy_params, value_clip, entropy_coef, vf_loss_coef, batch_size,  learning_rate, folder, use_gpu)
+        for i in range(n_agent)
 ]
 
-agentCql = AgentCqlClr( Policy_Model, Value_Model, Q_Model, Cnn_Model, Projection_Model, state_dim, action_dim, policy_dist, cql_loss, offvalue_loss, offpolicy_loss, auxclr_loss, 
-        policy_memory, auxclr_memory, is_training_mode, batch_size, cql_epochs, auxclr_epochs, learning_rate, folder, use_gpu)
+agentCql = AgentCqlClr( Policy_Model, Value_Model, Q_Model, Cnn_Model, Projection_Model, state_dim, action_dim, policy_dist, cql_loss, offvalue_loss, offpolicy_loss, auxclr_loss[-1], 
+        policy_memory[-1], auxclr_memory[-1], is_training_mode, batch_size, cql_epochs, auxclr_epochs, learning_rate, folder, use_gpu)
 
 # ray.init()
 runners = ray.put([
-        Runner(agentPgg, Wrapper, runner_memory, is_training_mode, render, n_update, Wrapper.is_discrete, max_action, SummaryWriter(), n_plot_batch)
-            for _ in range(2)
-        ])
+    Runner(agentPgg, Wrapper, runner_memory, is_training_mode, render, n_update, Wrapper.is_discrete, max_action, SummaryWriter(), n_plot_batch)
+        for _ in range(n_agent)
+])
 
-child_executors     = [Child_Executor.remote(agentPgg[i], runners[i], i, load_weights, save_weights) for i in range(2)]
+child_executors     = [Child_Executor.remote(agentPgg[i], runners[i], i, load_weights, save_weights) for i in range(n_agent)]
 central_executor    = Central_Executor(agentCql, n_iteration, child_executors, save_weights, n_saved)
 
 central_executor.execute()
