@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 from helper.pytorch import set_device, to_tensor, to_numpy
 
-class AgentCQL():
+class AgentCqlClr():
     def __init__(self, Policy_Model, Value_Model, Q_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, q_loss, v_loss, policy_loss, auxclr_loss, 
         policy_memory, auxclr_memory, is_training_mode = True, batch_size = 32, cql_epochs = 4, auxclr_epochs = 4, soft_tau = 0.95, learning_rate = 3e-4, 
         folder = 'model', use_gpu = True):

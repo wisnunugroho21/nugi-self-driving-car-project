@@ -1,7 +1,7 @@
 import torch
 from helper.pytorch import set_device
 
-class CLR():
+class Clr():
     def __init__(self, use_gpu):
         self.use_gpu = use_gpu
 

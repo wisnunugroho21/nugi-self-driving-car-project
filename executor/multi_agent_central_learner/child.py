@@ -1,5 +1,8 @@
 import ray
 
+from agent.agent_ppg_clr import AgentPpgClr
+from runner.carla_runner import CarlaRunner
+
 @ray.remote(num_gpus=0.25)
 class ChildExecutor():
     def __init__(self, agent, runner, tag, load_weights = False, save_weights = False):
