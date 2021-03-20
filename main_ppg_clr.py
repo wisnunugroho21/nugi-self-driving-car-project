@@ -35,8 +35,8 @@ n_iteration             = 1000000 # How many episode you want to run
 n_memory_auxclr         = 10000
 n_update                = 256 # How many episode before you update the Policy 
 n_ppo_update            = 1
-n_auxppg_update         = 2
-n_saved                 = n_ppo_update * n_auxppg_update
+n_aux_update         = 2
+n_saved                 = n_ppo_update * n_aux_update
 
 policy_kl_range         = 0.03
 policy_params           = 5
@@ -105,7 +105,7 @@ policy_loss         = Policy_loss(policy_dist, advantage_function, policy_kl_ran
 auxclr_loss         = AuxClr_loss(use_gpu)
 
 agent = AgentPpgClr( Policy_Model, Value_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, auxclr_loss, 
-                policy_memory, auxppg_memory, auxclr_memory, PPO_epochs, AuxPpg_epochs, AuxClr_epochs, n_ppo_update, n_auxppg_update, 
+                policy_memory, auxppg_memory, auxclr_memory, PPO_epochs, AuxPpg_epochs, AuxClr_epochs, n_ppo_update, n_aux_update, 
                 is_training_mode, policy_kl_range, policy_params, value_clip, entropy_coef, vf_loss_coef, 
                 batch_size,  learning_rate, folder, use_gpu)
 

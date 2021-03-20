@@ -7,7 +7,8 @@ from helper.pytorch import set_device, to_tensor, to_numpy
 
 class AgentCQL():
     def __init__(self, Policy_Model, Value_Model, Q_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, q_loss, v_loss, policy_loss, auxclr_loss, 
-        policy_memory, auxclr_memory, is_training_mode = True, batch_size = 32, epochs = 1, soft_tau = 0.95, learning_rate = 3e-4, folder = 'model', use_gpu = True):
+        policy_memory, auxclr_memory, is_training_mode = True, batch_size = 32, cql_epochs = 4, auxclr_epochs = 4, soft_tau = 0.95, learning_rate = 3e-4, 
+        folder = 'model', use_gpu = True):
 
         self.batch_size         = batch_size
         self.is_training_mode   = is_training_mode
@@ -16,14 +17,15 @@ class AgentCQL():
         self.learning_rate      = learning_rate
         self.folder             = folder
         self.use_gpu            = use_gpu
-        self.epochs             = epochs
+        self.cql_epochs         = cql_epochs
+        self.auxclr_epochs      = auxclr_epochs
         self.soft_tau           = soft_tau
 
-        self.device             = set_device(self.use_gpu)
+        self.device             = set_device(self.use_gpu)        
         
-        self.value              = Value_Model(state_dim, self.use_gpu).float().to(self.device)
         self.soft_q1            = Q_Model(state_dim, action_dim, self.use_gpu).float().to(self.device)
         self.soft_q2            = Q_Model(state_dim, action_dim, self.use_gpu).float().to(self.device)
+        self.value              = Value_Model(state_dim, self.use_gpu).float().to(self.device)
         self.policy             = Policy_Model(state_dim, action_dim, self.use_gpu).float().to(self.device)
 
         self.cnn                = CnnModel().float().to(self.device)
@@ -38,10 +40,7 @@ class AgentCQL():
         self.vLoss              = v_loss
         self.policyLoss         = policy_loss
         self.auxclrLoss         = auxclr_loss
-
-        self.scaler             = torch.cuda.amp.GradScaler()        
-        self.i_update           = 0
-        
+              
         self.soft_q_optimizer   = Adam(list(self.soft_q1.parameters()) + list(self.soft_q2.parameters()), lr = learning_rate)
         self.auxclr_optimizer   = Adam(list(self.cnn.parameters()) + list(self.auxclr_projection.parameters()), lr = learning_rate)
         self.value_optimizer    = Adam(self.value.parameters(), lr = learning_rate)
@@ -135,16 +134,19 @@ class AgentCQL():
         self.auxclr_scaler.update()
 
     def __update_offpolicy(self):
-        if len(self.policy_memory) > self.batch_size:
-            for _ in range(self.epochs):
-                dataloader  = DataLoader(self.policy_memory, self.batch_size, shuffle = True, num_workers = 2)
-                states, images, actions, rewards, dones, next_states, next_images = next(iter(dataloader))
+        dataloader  = DataLoader(self.policy_memory, self.batch_size, shuffle = True, num_workers = 2)
 
+        for _ in range(self.epochs):
+            for states, images, actions, rewards, dones, next_states, next_images in dataloader:
                 self.__training_q(to_tensor(states, use_gpu = self.use_gpu), to_tensor(images, use_gpu = self.use_gpu), actions.float().to(self.device), 
                     rewards.float().to(self.device), dones.float().to(self.device), to_tensor(next_states, use_gpu = self.use_gpu), to_tensor(next_images, use_gpu = self.use_gpu))
 
                 self.__training_values(to_tensor(states, use_gpu = self.use_gpu), to_tensor(images, use_gpu = self.use_gpu))
                 self.__training_policy(to_tensor(states, use_gpu = self.use_gpu), to_tensor(images, use_gpu = self.use_gpu))
+
+        states, images, _, _, _, _, _ = self.policy_memory.get_all_items()
+        self.auxclr_memory.save_all(images)
+        self.policy_memory.clear_memory()
 
     def __update_auxclr(self):
         dataloader  = DataLoader(self.auxclr_memory, self.batch_size, shuffle = True, num_workers = 2)
