@@ -10,7 +10,7 @@ from model.carla.value_model import ValueModel
 from model.carla.cnn_model import CnnModel
 from model.carla.projection_model import ProjectionModel
 from distribution.normal import NormalDist
-from executor.executor import Executor
+from executor.standard import Executor
 from runner.carla_runner import CarlaRunner
 from loss.ppo.truly_ppo import TrulyPPO
 from loss.other.clr import CLR
@@ -35,7 +35,7 @@ n_iteration             = 1000000 # How many episode you want to run
 n_memory_auxclr         = 10000
 n_update                = 256 # How many episode before you update the Policy 
 n_ppo_update            = 1
-n_aux_update         = 2
+n_aux_update            = 2
 n_saved                 = n_ppo_update * n_aux_update
 
 policy_kl_range         = 0.03
@@ -44,9 +44,9 @@ value_clip              = 20.0
 entropy_coef            = 0.0
 vf_loss_coef            = 1.0
 batch_size              = 32
-PPO_epochs              = 5
-AuxPpg_epochs           = 5
-AuxClr_epochs           = 5
+ppo_epochs              = 5
+auxppg_epochs           = 5
+auxclr_epochs           = 5
 action_std              = 1.0
 gamma                   = 0.95
 learning_rate           = 3e-4
@@ -105,7 +105,7 @@ policy_loss         = Policy_loss(policy_dist, advantage_function, policy_kl_ran
 auxclr_loss         = AuxClr_loss(use_gpu)
 
 agent = AgentPpgClr( Policy_Model, Value_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, auxclr_loss, 
-                policy_memory, auxppg_memory, auxclr_memory, PPO_epochs, AuxPpg_epochs, AuxClr_epochs, n_ppo_update, n_aux_update, 
+                policy_memory, auxppg_memory, auxclr_memory, ppo_epochs, auxppg_epochs, auxclr_epochs, n_aux_update, 
                 is_training_mode, policy_kl_range, policy_params, value_clip, entropy_coef, vf_loss_coef, 
                 batch_size,  learning_rate, folder, use_gpu)
 

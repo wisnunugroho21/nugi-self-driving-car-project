@@ -7,7 +7,7 @@ from helper.pytorch import set_device, to_tensor, to_numpy
 
 class AgentPpgClr():  
     def __init__(self, Policy_Model, Value_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, auxclr_loss, 
-                policy_memory, auxppg_memory, auxclr_memory, ppo_epochs = 10, auxppg_epochs = 10, auxclr_epochs = 10, n_ppo_update = 32, n_aux_update = 2, 
+                policy_memory, auxppg_memory, auxclr_memory, ppo_epochs = 10, auxppg_epochs = 10, auxclr_epochs = 10, n_aux_update = 2, 
                 is_training_mode = True, policy_kl_range = 0.03, policy_params = 5, value_clip = 1.0, entropy_coef = 0.0, vf_loss_coef = 1.0, 
                 batch_size = 32,  learning_rate = 3e-4, folder = 'model', use_gpu = True):   
 
@@ -26,8 +26,7 @@ class AgentPpgClr():
         self.learning_rate      = learning_rate
         self.folder             = folder
         self.use_gpu            = use_gpu
-        self.n_aux_update    = n_aux_update
-        self.n_ppo_update       = n_ppo_update
+        self.n_aux_update       = n_aux_update
 
         self.device             = set_device(self.use_gpu)
 
@@ -37,7 +36,7 @@ class AgentPpgClr():
         self.value              = Value_Model(state_dim).float().to(self.device)
         self.value_old          = Value_Model(state_dim).float().to(self.device)
 
-        self.cnn            = CnnModel().float().to(self.device)
+        self.cnn                = CnnModel().float().to(self.device)
         self.auxclr_projection  = ProjectionModel().float().to(self.device)
 
         self.policy_dist        = policy_dist
