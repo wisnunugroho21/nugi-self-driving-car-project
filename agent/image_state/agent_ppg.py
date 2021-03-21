@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 from helper.pytorch import set_device, to_numpy
 
-class AgentPpgClr():  
+class AgentPpg():  
     def __init__(self, Policy_Model, Value_Model, CnnModel, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, 
                 policy_memory, auxppg_memory, ppo_epochs = 10, auxppg_epochs = 10, n_aux_update = 2, is_training_mode = True, 
                 policy_kl_range = 0.03, policy_params = 5, value_clip = 1.0, entropy_coef = 0.0, vf_loss_coef = 1.0, 

@@ -15,7 +15,7 @@ import ray
 import carla
 
 class CarlaEnv():
-    def __init__(self, im_height = 480, im_width = 480, im_preview = False, max_step = 512, index_pos = None):
+    def __init__(self, im_height = 480, im_width = 480, im_preview = False, max_step = 512, index_pos = None, camera_type = 'rgb'):
         self.cur_step           = 0
         self.collision_hist     = []
         self.crossed_line_hist  = []
@@ -32,6 +32,7 @@ class CarlaEnv():
         self.im_preview             = im_preview
         self.max_step               = max_step
         self.index_pos              = index_pos
+        self.camera_type            = camera_type
 
         self.observation_space      = Box(low = -1.0, high = 1.0, shape = (im_height, im_width))
         self.action_space           = Box(low = -1.0, high = 1.0, shape = (2, 1))
@@ -40,10 +41,14 @@ class CarlaEnv():
         self.world          = client.get_world()
         blueprint_library   = self.world.get_blueprint_library()
 
-        self.model_3        = blueprint_library.filter('model3')[0]
-        self.rgb_cam        = blueprint_library.find('sensor.camera.rgb')
+        self.model_3        = blueprint_library.filter('model3')[0]        
         self.col_detector   = blueprint_library.find('sensor.other.collision')
-        self.crl_detector   = blueprint_library.find('sensor.other.lane_invasion')        
+        self.crl_detector   = blueprint_library.find('sensor.other.lane_invasion') 
+
+        if camera_type == 'rgb':
+            self.rgb_cam    = blueprint_library.find('sensor.camera.rgb')    
+        elif camera_type == 'semantic':
+            self.rgb_cam    = blueprint_library.find('sensor.camera.semantic_segmentation')
 
         self.rgb_cam.set_attribute('image_size_x', f'{im_height}')
         self.rgb_cam.set_attribute('image_size_y', f'{im_width}')
@@ -68,14 +73,18 @@ class CarlaEnv():
             return self.init_pos[idx_pos]
 
     def __process_image(self, image):
-        # image.convert(carla.ColorConverter.CityScapesPalette)        
-        
         i = np.array(image.raw_data)
         i = i.reshape((self.im_height, self.im_width, -1))
-        i = i[:, :, :3]
+        i = i[:, :, :3] if self.camera_type == 'rgb' else i[:, :, 1:22]
 
-        if self.im_preview:
-            cv2.imshow('', i)
+        if self.im_preview and self.camera_type == 'rgb':
+            if self.camera_type == 'semantic':
+                ip = image.convert(carla.ColorConverter.CityScapesPalette) 
+                ip = np.array(image.raw_data)
+            else:
+                ip = i
+
+            cv2.imshow('', ip)
             cv2.waitKey(1)
 
         i = Image.fromarray(i)
