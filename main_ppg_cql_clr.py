@@ -28,6 +28,8 @@ from rl_function.advantage_function.generalized_advantage_estimation import Gene
 from agent.agent_ppg_clr import AgentPpgClr
 from agent.agent_cql_clr import AgentCqlClr
 
+ray.init()
+
 ############## Hyperparameters ##############
 
 load_weights            = False # If you want to load the agent, set this to True
@@ -96,19 +98,6 @@ np.random.seed(20)
 torch.manual_seed(20)
 os.environ['PYTHONHASHSEED'] = str(20)
 
-if state_dim is None:
-    state_dim = Wrapper[0].get_obs_dim()
-print('state_dim: ', state_dim)
-
-if Wrapper[0].is_discrete():
-    print('discrete')
-else:
-    print('continous')
-
-if action_dim is None:
-    action_dim = Wrapper[0].get_action_dim()
-print('action_dim: ', action_dim)
-
 policy_dist         = [Policy_Dist(use_gpu) for _ in range(n_agent + 1)]
 advantage_function  = [Advantage_Function(gamma) for _ in range(n_agent)]
 auxppg_memory       = [AuxPpg_Memory() for _ in range(n_agent)]
@@ -131,7 +120,6 @@ agentPgg = [
 agentCql = AgentCqlClr( Policy_Model, Value_Model, Q_Model, Cnn_Model, Projection_Model, state_dim, action_dim, policy_dist, cql_loss, offvalue_loss, offpolicy_loss, auxclr_loss[-1], 
         policy_memory[-1], auxclr_memory[-1], is_training_mode, batch_size, cql_epochs, auxclr_epochs, learning_rate, folder, use_gpu)
 
-ray.init()
 runners = ray.put([
     Runner(agentPgg, Wrapper[i], runner_memory, is_training_mode, render, n_update, Wrapper[i].is_discrete, max_action, SummaryWriter(), n_plot_batch)
         for i in range(n_agent)
