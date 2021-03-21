@@ -68,15 +68,13 @@ class AuxClrMemory(Dataset):
 
         self.images.append(image)
 
-    def save_replace_all(self, images):
+    def save_replace_all(self, images, save_tensor_images = True):
         self.clear_memory()
+        self.save_all(images, save_tensor_images)
 
+    def save_all(self, images, save_tensor_images = True):
         for image in images:
-            self.save_eps(image)
-
-    def save_all(self, images):
-        for image in images:
-            self.save_eps(image)
+            self.save_eps(image, save_tensor_images)
 
     def get_all_items(self, get_tensor_images = True):  
         images = self.images

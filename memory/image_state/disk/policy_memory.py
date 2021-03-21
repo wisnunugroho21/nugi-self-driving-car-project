@@ -73,13 +73,13 @@ class PolicyMemory(Dataset):
         self.dones.append(done)
         self.next_states.append(next_state)
 
-    def save_replace_all(self, states, images, actions, rewards, dones, next_states, next_images):
+    def save_replace_all(self, states, images, actions, rewards, dones, next_states, next_images, save_tensor_images = True):
         self.clear_memory()
-        self.save_all(states, images, actions, rewards, dones, next_states, next_images)
+        self.save_all(states, images, actions, rewards, dones, next_states, next_images, save_tensor_images)
 
-    def save_all(self, states, images, actions, rewards, dones, next_states, next_images):
+    def save_all(self, states, images, actions, rewards, dones, next_states, next_images, save_tensor_images = True):
         for state, image, action, reward, done, next_state, next_image in zip(states, images, actions, rewards, dones, next_states, next_images):
-            self.save_eps(state, image, action, reward, done, next_state, next_image)
+            self.save_eps(state, image, action, reward, done, next_state, next_image, save_tensor_images)
 
     def get_all_items(self, get_tensor_images = True): 
         images = self.images

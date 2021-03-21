@@ -52,13 +52,13 @@ class AuxPpgMemory(Dataset):
         self.states.append(state)
         self.images.append(image)
 
-    def save_replace_all(self, states, images):
+    def save_replace_all(self, states, images, save_tensor_images = True):
         self.clear_memory()
-        self.save_all(states, images)
+        self.save_all(states, images, save_tensor_images)
 
-    def save_all(self, states, images):
+    def save_all(self, states, images, save_tensor_images = True):
         for state, image in zip(states, images):
-            self.save_eps(state, image)
+            self.save_eps(state, image, save_tensor_images)
 
     def get_all_items(self, get_tensor_images = True):
         images = self.images
