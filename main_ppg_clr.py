@@ -11,13 +11,13 @@ from model.carla.cnn_model import CnnModel
 from model.carla.projection_model import ProjectionModel
 from distribution.normal import NormalDist
 from executor.standard import Executor
-from runner.carla_runner import CarlaRunner
+from runner.iteration.carla_runner import CarlaRunner
 from loss.ppo.truly_ppo import TrulyPPO
 from loss.other.clr import Clr
 from loss.other.joint_aux_ppg import JointAuxPpg
-from memory.aux_clr_memory import AuxClrMemory
-from memory.aux_ppg_memory import AuxPpgMemory
-from memory.policy_memory import PolicyMemory
+from memory.standard.aux_clr_memory import AuxClrMemory
+from memory.standard.aux_ppg_memory import AuxPpgMemory
+from memory.standard.policy_memory import PolicyMemory
 from rl_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
 from agent.agent_ppg_clr import AgentPpgClr
 

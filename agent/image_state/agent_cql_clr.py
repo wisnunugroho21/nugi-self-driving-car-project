@@ -20,10 +20,9 @@ class AgentCqlClr():
         self.cql_epochs         = cql_epochs
         self.auxclr_epochs      = auxclr_epochs
 
-        self.device             = set_device(self.use_gpu)        
+        self.device             = set_device(self.use_gpu)
         
-        self.soft_q1            = Q_Model(state_dim, action_dim).float().to(self.device)
-        self.soft_q2            = Q_Model(state_dim, action_dim).float().to(self.device)
+        self.soft_q             = Q_Model(state_dim, action_dim).float().to(self.device)
         self.value              = Value_Model(state_dim).float().to(self.device)
         self.policy             = Policy_Model(state_dim, action_dim, self.use_gpu).float().to(self.device)
 
@@ -40,10 +39,10 @@ class AgentCqlClr():
         self.policyLoss         = policy_loss
         self.auxclrLoss         = auxclr_loss
               
-        self.soft_q_optimizer   = Adam(list(self.soft_q1.parameters()) + list(self.soft_q2.parameters()), lr = learning_rate)
-        self.auxclr_optimizer   = Adam(list(self.cnn.parameters()) + list(self.auxclr_projection.parameters()), lr = learning_rate)
+        self.soft_q_optimizer   = Adam(list(self.soft_q.parameters()) + list(self.cnn.parameters()), lr = learning_rate)        
         self.value_optimizer    = Adam(self.value.parameters(), lr = learning_rate)
         self.policy_optimizer   = Adam(self.policy.parameters(), lr = learning_rate)
+        self.auxclr_optimizer   = Adam(list(self.cnn.parameters()) + list(self.auxclr_projection.parameters()), lr = learning_rate)
 
         self.soft_q_scaler      = torch.cuda.amp.GradScaler()
         self.value_scaler       = torch.cuda.amp.GradScaler()
@@ -66,13 +65,10 @@ class AgentCqlClr():
             predicted_actions           = self.policy_dist.sample(action_datas).detach()
             next_value                  = self.value(next_res, next_states, True)
 
-            naive_predicted_q_value1    = self.soft_q1(res, states, predicted_actions)
-            predicted_q_value1          = self.soft_q1(res, states, actions)
+            naive_predicted_q_value     = self.soft_q(res, states, predicted_actions)
+            predicted_q_value           = self.soft_q(res, states, actions)
 
-            naive_predicted_q_value2    = self.soft_q2(res, states, predicted_actions)
-            predicted_q_value2          = self.soft_q2(res, states, actions)
-
-            loss = self.qLoss.compute_loss(naive_predicted_q_value1, predicted_q_value1, rewards, dones, next_value) + self.qLoss.compute_loss(naive_predicted_q_value2, predicted_q_value2, rewards, dones, next_value)        
+            loss = self.qLoss.compute_loss(naive_predicted_q_value, predicted_q_value, rewards, dones, next_value)        
         
         self.soft_q_scaler.scale(loss).backward()
         self.soft_q_scaler.step(self.soft_q_optimizer)
@@ -86,13 +82,11 @@ class AgentCqlClr():
 
             action_datas        = self.policy(res, states, True)
             predicted_actions   = self.policy_dist.sample(action_datas).detach()
-
-            q_value1            = self.soft_q1(res, states, predicted_actions, True)
-            q_value2            = self.soft_q2(res, states, predicted_actions, True)
+            q_value             = self.soft_q(res, states, predicted_actions, True)
             
             predicted_value     = self.value(res, states)
 
-            loss = self.vLoss.compute_loss(predicted_value, q_value1, q_value2)
+            loss = self.vLoss.compute_loss(predicted_value, q_value)
 
         self.value_scaler.scale(loss).backward()
         self.value_scaler.step(self.value_optimizer)
@@ -102,15 +96,14 @@ class AgentCqlClr():
         self.policy_optimizer.zero_grad()
 
         with torch.cuda.amp.autocast():
-            res             = self.cnn(images, True)
+            res                 = self.cnn(images, True)
 
-            action_datas    = self.policy(res, states)
-            actions         = self.policy_dist.sample(action_datas)
+            action_datas        = self.policy(res, states)
+            predicted_actions   = self.policy_dist.sample(action_datas)
 
-            q_value1        = self.soft_q1(states, actions)
-            q_value2        = self.soft_q2(states, actions)
+            q_value             = self.soft_q(states, predicted_actions)
 
-            loss = self.policyLoss.compute_loss(q_value1, q_value2)
+            loss = self.policyLoss.compute_loss(q_value)
 
         self.policy_scaler.scale(loss).backward()
         self.policy_scaler.step(self.policy_optimizer)

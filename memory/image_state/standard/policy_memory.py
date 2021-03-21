@@ -5,7 +5,6 @@ import numpy as np
 class PolicyMemory(Dataset):
     def __init__(self, capacity = 100000):
         self.capacity       = capacity
-        self.position       = 0
 
         self.states         = []
         self.images         = []
