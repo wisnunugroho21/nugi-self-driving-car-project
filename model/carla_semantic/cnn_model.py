@@ -8,9 +8,9 @@ class CnnModel(nn.Module):
       super(CnnModel, self).__init__()   
 
       self.conv = nn.Sequential(
-        AtrousSpatialPyramidConv2d(21, 21),
+        AtrousSpatialPyramidConv2d(3, 3),
         nn.ReLU(),        
-        DepthwiseSeparableConv2d(21, 16, kernel_size = 3, stride = 1, padding = 1),
+        DepthwiseSeparableConv2d(3, 16, kernel_size = 3, stride = 1, padding = 1),
         nn.ReLU(),
         DepthwiseSeparableConv2d(16, 32, kernel_size = 8, stride = 4, padding = 2),
         nn.ReLU(),
@@ -24,6 +24,7 @@ class CnnModel(nn.Module):
         
     def forward(self, image, detach = False):
       out = self.conv(image)
+      out = out.mean([-1, -2])
 
       if detach:
         return out.detach()

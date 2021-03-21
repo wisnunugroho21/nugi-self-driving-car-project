@@ -12,10 +12,9 @@ from distribution.normal import NormalDist
 from executor.standard import Executor
 from runner.iteration.carla_runner import CarlaRunner
 from loss.ppo.truly_ppo import TrulyPPO
-from loss.other.clr import Clr
 from loss.other.joint_aux_ppg import JointAuxPpg
-from memory.standard.aux_ppg_memory import AuxPpgMemory
-from memory.standard.policy_memory import PolicyMemory
+from memory.image_state.standard.aux_ppg_memory import AuxPpgMemory
+from memory.image_state.standard.policy_memory import PolicyMemory
 from rl_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
 from agent.image_state.agent_ppg import AgentPpg
 
@@ -62,7 +61,6 @@ Runner              = CarlaRunner
 Executor            = Executor
 Policy_loss         = TrulyPPO
 AuxPpg_loss         = JointAuxPpg
-AuxClr_loss         = Clr
 Wrapper             = env
 Policy_Memory       = PolicyMemory
 AuxPpg_Memory       = AuxPpgMemory
@@ -96,7 +94,6 @@ policy_memory       = Policy_Memory()
 runner_memory       = Policy_Memory()
 auxppg_loss         = AuxPpg_loss(policy_dist)
 policy_loss         = Policy_loss(policy_dist, advantage_function, policy_kl_range, policy_params, value_clip, vf_loss_coef, entropy_coef, gamma)
-auxclr_loss         = AuxClr_loss(use_gpu)
 
 agent = Agent(Policy_Model, Value_Model, CnnModel, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, 
     policy_memory, auxppg_memory, ppo_epochs, auxppg_epochs, n_aux_update, is_training_mode, policy_kl_range, 
