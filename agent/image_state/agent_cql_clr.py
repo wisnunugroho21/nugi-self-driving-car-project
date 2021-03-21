@@ -137,7 +137,7 @@ class AgentCqlClr():
                 self.__training_policy(states.float().to(self.device), images.float().to(self.device))
 
         states, images, _, _, _, _, _ = self.policy_memory.get_all_items(get_tensor_images = False)
-        self.auxclr_memory.save_all(images)
+        self.auxclr_memory.save_all(images, save_tensor_images = True)
         self.policy_memory.clear_memory(delete_img = False)
 
     def __update_auxclr(self):
@@ -147,7 +147,7 @@ class AgentCqlClr():
             for first_images, second_images in dataloader:
                 self.__training_auxclr(to_tensor(first_images, use_gpu = self.use_gpu), to_tensor(second_images, use_gpu = self.use_gpu))
 
-        self.auxclr_memory.clear_memory(delete_img = True)
+        self.auxclr_memory.clear_memory()
 
     def save_memory(self, policy_memory):
         states, images, actions, rewards, dones, next_states, next_images = policy_memory.get_all_items(get_tensor_images = False)
