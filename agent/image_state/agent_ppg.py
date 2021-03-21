@@ -107,7 +107,7 @@ class AgentPpg():
         self.auxppg_scaler.update()
 
     def __update_ppo(self):
-        dataloader = DataLoader(self.policy_memory, self.batch_size, shuffle = False, num_workers = 2)
+        dataloader = DataLoader(self.policy_memory, self.batch_size, shuffle = False, num_workers = 4)
 
         for _ in range(self.ppo_epochs):       
             for states, images, actions, rewards, dones, next_states, next_images in dataloader: 
@@ -122,7 +122,7 @@ class AgentPpg():
         self.value_old.load_state_dict(self.value.state_dict())
 
     def __update_auxppg(self):
-        dataloader  = DataLoader(self.auxppg_memory, self.batch_size, shuffle = False, num_workers = 2)
+        dataloader  = DataLoader(self.auxppg_memory, self.batch_size, shuffle = False, num_workers = 4)
 
         for _ in range(self.auxppg_epochs):       
             for states, images in dataloader:
@@ -132,8 +132,8 @@ class AgentPpg():
         self.policy_old.load_state_dict(self.policy.state_dict())
         
     def act(self, state, image):
-        state, image        = state.unsqueeze(0).float().to(self.device), self.trans(image).unsqueeze(0).float().to(self.device)
-
+        state, image        = torch.FloatTensor(state).unsqueeze(0).to(self.device), torch.FloatTensor(self.trans(image)).unsqueeze(0).to(self.device)
+        
         res                 = self.cnn(image)
         action_datas, _     = self.policy(res, state)
         

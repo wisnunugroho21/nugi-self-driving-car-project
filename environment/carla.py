@@ -73,18 +73,15 @@ class CarlaEnv():
             return self.init_pos[idx_pos]
 
     def __process_image(self, image):
+        if self.camera_type == 'semantic':
+            image.convert(carla.ColorConverter.CityScapesPalette)
+
         i = np.array(image.raw_data)
         i = i.reshape((self.im_height, self.im_width, -1))
-        i = i[:, :, :3] if self.camera_type == 'rgb' else i[:, :, 1:22]
+        i = i[:, :, :3]
 
-        if self.im_preview and self.camera_type == 'rgb':
-            if self.camera_type == 'semantic':
-                ip = image.convert(carla.ColorConverter.CityScapesPalette) 
-                ip = np.array(image.raw_data)
-            else:
-                ip = i
-
-            cv2.imshow('', ip)
+        if self.im_preview:
+            cv2.imshow('', i)
             cv2.waitKey(1)
 
         i = Image.fromarray(i)

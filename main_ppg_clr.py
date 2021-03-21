@@ -5,21 +5,21 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from environment.carla import CarlaEnv
-from model.carla.policy_model import PolicyModel
-from model.carla.value_model import ValueModel
-from model.carla.cnn_model import CnnModel
-from model.carla.projection_model import ProjectionModel
+from model.carla_rgb.policy_model import PolicyModel
+from model.carla_rgb.value_model import ValueModel
+from model.carla_rgb.cnn_model import CnnModel
+from model.carla_rgb.projection_model import ProjectionModel
 from distribution.normal import NormalDist
 from executor.standard import Executor
 from runner.iteration.carla_runner import CarlaRunner
 from loss.ppo.truly_ppo import TrulyPPO
 from loss.other.clr import Clr
 from loss.other.joint_aux_ppg import JointAuxPpg
-from memory.standard.aux_clr_memory import AuxClrMemory
-from memory.standard.aux_ppg_memory import AuxPpgMemory
-from memory.standard.policy_memory import PolicyMemory
+from memory.image_state.standard.aux_clr_memory import AuxClrMemory
+from memory.image_state.standard.aux_ppg_memory import AuxPpgMemory
+from memory.image_state.standard.policy_memory import PolicyMemory
 from rl_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
-from agent.agent_ppg_clr import AgentPpgClr
+from agent.image_state.agent_ppg_clr import AgentPpgClr
 
 ############## Hyperparameters ##############
 
