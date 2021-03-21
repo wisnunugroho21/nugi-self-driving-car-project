@@ -3,7 +3,7 @@ import torchvision.transforms as transforms
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-from helper.pytorch import set_device, to_tensor, to_numpy
+from helper.pytorch import set_device, to_numpy
 
 class AgentPpgClr():  
     def __init__(self, Policy_Model, Value_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, policy_loss, auxppg_loss, auxclr_loss, 
@@ -133,8 +133,8 @@ class AgentPpgClr():
 
         for _ in range(self.ppo_epochs):       
             for states, images, actions, rewards, dones, next_states, next_images in dataloader: 
-                self.__training_ppo(to_tensor(states, use_gpu = self.use_gpu), to_tensor(images, use_gpu = self.use_gpu), actions.float().to(self.device), 
-                    rewards.float().to(self.device), dones.float().to(self.device), to_tensor(next_states, use_gpu = self.use_gpu), to_tensor(next_images, use_gpu = self.use_gpu))
+                self.__training_ppo(states.float().to(self.device), images.float().to(self.device), actions.float().to(self.device), 
+                    rewards.float().to(self.device), dones.float().to(self.device), next_states.float().to(self.device), next_images.float().to(self.device))
 
         states, images, _, _, _, _, _ = self.policy_memory.get_all_items()
         self.auxppg_memory.save_all(states, images)
@@ -148,7 +148,7 @@ class AgentPpgClr():
 
         for _ in range(self.auxppg_epochs):       
             for states, images in dataloader:
-                self.__training_auxppg(to_tensor(states, use_gpu = self.use_gpu), to_tensor(images, use_gpu = self.use_gpu))
+                self.__training_auxppg(states.float().to(self.device), images.float().to(self.device))
 
         _, images = self.auxppg_memory.get_all_items()
         self.auxclr_memory.save_all(images)
@@ -161,12 +161,12 @@ class AgentPpgClr():
 
         for _ in range(self.auxclr_epochs):
             for first_images, second_images in dataloader:
-                self.__training_auxclr(to_tensor(first_images, use_gpu = self.use_gpu), to_tensor(second_images, use_gpu = self.use_gpu))
+                self.__training_auxclr(first_images.float().to(self.device), second_images.float().to(self.device))
 
         self.auxclr_memory.clear_memory()
         
     def act(self, state, image):
-        state, image        = to_tensor(state, use_gpu = self.use_gpu, first_unsqueeze = True, detach = True), to_tensor(self.trans(image), use_gpu = self.use_gpu, first_unsqueeze = True, detach = True)
+        state, image        = state.unsqueeze(0).float().to(self.device), self.trans(image).unsqueeze(0).float().to(self.device)
 
         res                 = self.cnn(image)
         action_datas, _     = self.policy(res, state)
@@ -176,7 +176,7 @@ class AgentPpgClr():
         else:
             action = self.policy_dist.deterministic(action_datas)
               
-        return to_numpy(action)
+        return action.detach().cpu().numpy()
 
     def save_memory(self, policy_memory):
         states, images, actions, rewards, dones, next_states, next_images = policy_memory.get_all_items()

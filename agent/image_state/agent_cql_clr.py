@@ -130,11 +130,11 @@ class AgentCqlClr():
 
         for _ in range(self.epochs):
             for states, images, actions, rewards, dones, next_states, next_images in dataloader:
-                self.__training_q(to_tensor(states, use_gpu = self.use_gpu), to_tensor(images, use_gpu = self.use_gpu), actions.float().to(self.device), 
-                    rewards.float().to(self.device), dones.float().to(self.device), to_tensor(next_states, use_gpu = self.use_gpu), to_tensor(next_images, use_gpu = self.use_gpu))
+                self.__training_q(states.float().to(self.device), images.float().to(self.device), actions.float().to(self.device), 
+                    rewards.float().to(self.device), dones.float().to(self.device), next_states.float().to(self.device), next_images.float().to(self.device))
 
-                self.__training_values(to_tensor(states, use_gpu = self.use_gpu), to_tensor(images, use_gpu = self.use_gpu))
-                self.__training_policy(to_tensor(states, use_gpu = self.use_gpu), to_tensor(images, use_gpu = self.use_gpu))
+                self.__training_values(states.float().to(self.device), images.float().to(self.device))
+                self.__training_policy(states.float().to(self.device), images.float().to(self.device))
 
         states, images, _, _, _, _, _ = self.policy_memory.get_all_items()
         self.auxclr_memory.save_all(images)
@@ -154,7 +154,7 @@ class AgentCqlClr():
         self.policy_memory.save_all(states, images, actions, rewards, dones, next_states, next_images)
         
     def act(self, state, image):
-        state, image        = to_tensor(state, use_gpu = self.use_gpu, first_unsqueeze = True, detach = True), to_tensor(self.trans(image), use_gpu = self.use_gpu, first_unsqueeze = True, detach = True)
+        state, image        = state.unsqueeze(0).float().to(self.device), self.trans(image).unsqueeze(0).float().to(self.device)
 
         res                 = self.cnn(image)
         action_datas, _     = self.policy(res, state)
@@ -164,7 +164,7 @@ class AgentCqlClr():
         else:
             action = self.policy_dist.act_deterministic(action_datas)
               
-        return to_numpy(action, self.use_gpu)
+        return action.detach().cpu().numpy()
 
     def update(self):
         self.__update_offpolicy()
