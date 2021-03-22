@@ -37,4 +37,4 @@ class Executor():
         finally:
             finish = time.time()
             timedelta = finish - start
-            print('\nTimelength: {}'.format(str( datetime.timedelta(seconds = timedelta) )))
+            print('Timelength: {}'.format(str( datetime.timedelta(seconds = timedelta) )))
