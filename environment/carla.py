@@ -65,14 +65,14 @@ class CarlaEnv():
             actor.destroy()
         del self.actor_list[:]
 
-    def __get_pos(self):
+    def _get_pos(self):
         if self.index_pos is not None:
             return self.init_pos[self.index_pos]
         else:
             idx_pos = np.random.randint(len(self.init_pos))
             return self.init_pos[idx_pos]
 
-    def __process_image(self, image):
+    def _process_image(self, image):
         if self.camera_type == 'semantic':
             image.convert(carla.ColorConverter.CityScapesPalette)
 
@@ -87,13 +87,13 @@ class CarlaEnv():
         i = Image.fromarray(i)
         return i
 
-    def __process_collision(self, event):
+    def _process_collision(self, event):
         self.collision_hist.append(event)
 
-    def __process_crossed_line(self, event):
+    def _process_crossed_line(self, event):
         self.crossed_line_hist.append(event)
 
-    def __tick_env(self):
+    def _tick_env(self):
         self.world.tick()
         time.sleep(0.05)
 
@@ -111,7 +111,7 @@ class CarlaEnv():
             actor.destroy()
         del self.actor_list[:]        
 
-        pos = self.__get_pos()
+        pos = self._get_pos()
         pos = carla.Transform(carla.Location(x = pos[0], y = pos[1], z = 1.0), carla.Rotation(pitch = 0, yaw = pos[2], roll = 0))
         
         self.vehicle    = self.world.spawn_actor(self.model_3, pos)        
@@ -121,13 +121,13 @@ class CarlaEnv():
         self.cam_sensor.listen(self.cam_queue.put)
 
         for _ in range(4):
-            self.__tick_env()
+            self._tick_env()
         
         self.col_sensor = self.world.spawn_actor(self.col_detector, carla.Transform(), attach_to = self.vehicle)
-        self.col_sensor.listen(lambda event: self.__process_collision(event))
+        self.col_sensor.listen(lambda event: self._process_collision(event))
         
         self.crl_sensor = self.world.spawn_actor(self.crl_detector, carla.Transform(), attach_to = self.vehicle)
-        self.crl_sensor.listen(lambda event: self.__process_crossed_line(event))
+        self.crl_sensor.listen(lambda event: self._process_crossed_line(event))
         
         self.actor_list.append(self.cam_sensor)
         self.actor_list.append(self.col_sensor)
@@ -136,7 +136,7 @@ class CarlaEnv():
 
         self.cur_step = 0
 
-        image = self.__process_image(self.cam_queue.get())
+        image = self._process_image(self.cam_queue.get())
         del self.collision_hist[:]
         del self.crossed_line_hist[:] 
         
@@ -150,7 +150,7 @@ class CarlaEnv():
         brake       = 0 if action[2] < 0 else 1 if action[2] > 1 else action[2]
         self.vehicle.apply_control(carla.VehicleControl(steer = float(steer), throttle = float(throttle), brake = float(brake)))
 
-        self.__tick_env()
+        self._tick_env()
         self.cur_step   += 1
 
         v       = self.vehicle.get_velocity()
@@ -164,7 +164,7 @@ class CarlaEnv():
         done    = False
         reward  = (dif_loc * 10) - 0.1        
         
-        image   = self.__process_image(self.cam_queue.get())
+        image   = self._process_image(self.cam_queue.get())
         if len(self.crossed_line_hist) > 0 or len(self.collision_hist) > 0 or loc.x >= -100 or loc.y >= -10 or self.cur_step >= self.max_step:
             done = True
         

@@ -69,7 +69,7 @@ class AgentPpg():
           self.policy.eval()
           self.value.eval()
 
-    def __training_ppo(self, states, images, actions, rewards, dones, next_states, next_images):         
+    def _training_ppo(self, states, images, actions, rewards, dones, next_states, next_images):         
         self.ppo_optimizer.zero_grad()
 
         with torch.cuda.amp.autocast():
@@ -89,7 +89,7 @@ class AgentPpg():
         self.ppo_scaler.step(self.ppo_optimizer)
         self.ppo_scaler.update()
 
-    def __training_auxppg(self, states, images):        
+    def _training_auxppg(self, states, images):        
         self.auxppg_optimizer.zero_grad()
         
         with torch.cuda.amp.autocast():
@@ -106,12 +106,12 @@ class AgentPpg():
         self.auxppg_scaler.step(self.auxppg_optimizer)
         self.auxppg_scaler.update()
 
-    def __update_ppo(self):
+    def _update_ppo(self):
         dataloader = DataLoader(self.policy_memory, self.batch_size, shuffle = False, num_workers = 4)
 
         for _ in range(self.ppo_epochs):       
             for states, images, actions, rewards, dones, next_states, next_images in dataloader: 
-                self.__training_ppo(states.float().to(self.device), images.float().to(self.device), actions.float().to(self.device), 
+                self._training_ppo(states.float().to(self.device), images.float().to(self.device), actions.float().to(self.device), 
                     rewards.float().to(self.device), dones.float().to(self.device), next_states.float().to(self.device), next_images.float().to(self.device))
 
         states, images, _, _, _, _, _ = self.policy_memory.get_all_items()
@@ -121,12 +121,12 @@ class AgentPpg():
         self.policy_old.load_state_dict(self.policy.state_dict())
         self.value_old.load_state_dict(self.value.state_dict())
 
-    def __update_auxppg(self):
+    def _update_auxppg(self):
         dataloader  = DataLoader(self.auxppg_memory, self.batch_size, shuffle = False, num_workers = 4)
 
         for _ in range(self.auxppg_epochs):       
             for states, images in dataloader:
-                self.__training_auxppg(states.float().to(self.device), images.float().to(self.device))
+                self._training_auxppg(states.float().to(self.device), images.float().to(self.device))
 
         self.auxppg_memory.clear_memory()
         self.policy_old.load_state_dict(self.policy.state_dict())
@@ -149,11 +149,11 @@ class AgentPpg():
         self.policy_memory.save_all(states, images, actions, rewards, dones, next_states, next_images)
 
     def update(self):
-        self.__update_ppo()
+        self._update_ppo()
         self.i_auxppg_update += 1
 
         if self.i_auxppg_update % self.n_aux_update == 0 and self.i_auxppg_update != 0:
-            self.__update_auxppg()
+            self._update_auxppg()
             self.i_auxppg_update = 0
 
     def save_weights(self):
