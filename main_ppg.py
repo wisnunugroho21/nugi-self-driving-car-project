@@ -4,7 +4,7 @@ import random
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from environment.carla import CarlaEnv
+from environment.carla_semantic import CarlaSemanticEnv
 from model.carla_semantic.policy_model import PolicyModel
 from model.carla_semantic.value_model import ValueModel
 from model.carla_semantic.cnn_model import CnnModel
@@ -13,10 +13,10 @@ from executor.standard import Executor
 from runner.iteration.carla_runner import CarlaRunner
 from loss.ppo.truly_ppo import TrulyPPO
 from loss.other.joint_aux_ppg import JointAuxPpg
-from memory.image_state.standard.aux_ppg_memory import AuxPpgMemory
-from memory.image_state.standard.policy_memory import PolicyMemory
+from memory.image_state.standard.semantic.aux_ppg_memory import AuxPpgSemanticMemory
+from memory.image_state.standard.semantic.policy_memory import PolicySemanticMemory
 from rl_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
-from agent.image_state.agent_ppg import AgentPpg
+from agent.image_state.ppg.agent_ppg_semantic import AgentPpgSemantic
 
 ############## Hyperparameters ##############
 
@@ -47,7 +47,7 @@ gamma                   = 0.95
 learning_rate           = 3e-4
 
 folder                  = 'weights/carla2'
-env                     = CarlaEnv(im_height = 320, im_width = 320, im_preview = False, max_step = 512, camera_type = 'semantic') 
+env                     = CarlaSemanticEnv(im_height = 320, im_width = 320, im_preview = False, max_step = 512, camera_type = 'semantic') 
 
 state_dim           = None
 action_dim          = None
@@ -62,10 +62,10 @@ Executor            = Executor
 Policy_loss         = TrulyPPO
 AuxPpg_loss         = JointAuxPpg
 Wrapper             = env
-Policy_Memory       = PolicyMemory
-AuxPpg_Memory       = AuxPpgMemory
+Policy_Memory       = PolicySemanticMemory
+AuxPpg_Memory       = AuxPpgSemanticMemory
 Advantage_Function  = GeneralizedAdvantageEstimation
-Agent               = AgentPpg
+Agent               = AgentPpgSemantic
 
 #####################################################################################################################################################
 

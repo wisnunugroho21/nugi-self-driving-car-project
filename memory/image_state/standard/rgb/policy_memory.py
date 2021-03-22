@@ -14,11 +14,6 @@ class PolicyMemory(Dataset):
         self.next_states    = []
         self.next_images    = []
 
-        self.trans  = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ])
-
     def __len__(self):
         return len(self.dones)
 
