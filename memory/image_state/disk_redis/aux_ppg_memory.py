@@ -75,3 +75,15 @@ class AuxPpgMemory(Dataset):
 
         del self.states[:]
         del self.images[:]
+
+    def save_redis(self):
+        self.redis.append('states', self.states)
+        self.redis.append('images', self.images)
+
+    def load_redis(self):
+        self.states = self.redis.lrange('states', 0, -1)
+        self.images = self.redis.lrange('images', 0, -1)
+
+    def delete_redis(self):
+        self.redis.delete('states')
+        self.redis.delete('images')

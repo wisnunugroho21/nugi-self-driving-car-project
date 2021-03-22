@@ -8,7 +8,8 @@ import string
 import os
 
 class PolicyMemory(Dataset):
-    def __init__(self, capacity = 100000, folder_img = '/temp/'):
+    def __init__(self, redis, capacity = 100000, folder_img = '/temp/'):
+        self.redis          = redis
         self.folder_img     = folder_img
         self.capacity       = capacity
         self.position       = 0
@@ -38,7 +39,7 @@ class PolicyMemory(Dataset):
             np.array(self.next_states[idx], dtype = np.float32), next_images.detach().cpu().numpy()
 
     def __get_image_tens(self, filename):
-        return Image.open(filename).convert("RGB")
+        return Image.open(filename).convert('RGB')
 
     def __save_tensor_as_image(self, tensor):
         image_name  = self.folder_img + ''.join(random.choices(string.ascii_uppercase + string.digits, k = 12))
@@ -106,3 +107,30 @@ class PolicyMemory(Dataset):
         del self.dones[:]
         del self.next_states[:]
         del self.next_images[:]
+
+    def save_redis(self):
+        self.redis.append('states', self.states)
+        self.redis.append('images', self.images)
+        self.redis.append('actions', self.actions)
+        self.redis.append('rewards', self.rewards)
+        self.redis.append('dones', self.dones)
+        self.redis.append('next_states', self.next_states)
+        self.redis.append('next_images', self.next_images)
+
+    def load_redis(self):
+        self.states         = self.redis.lrange('states', 0, -1)
+        self.images         = self.redis.lrange('images', 0, -1)
+        self.actions        = self.redis.lrange('actions', 0, -1)
+        self.rewards        = self.redis.lrange('rewards', 0, -1)
+        self.dones          = self.redis.lrange('dones', 0, -1)
+        self.next_states    = self.redis.lrange('next_states', 0, -1)
+        self.next_images    = self.redis.lrange('next_images', 0, -1)
+
+    def delete_redis(self):
+        self.redis.delete('states')
+        self.redis.delete('images')
+        self.redis.delete('actions')
+        self.redis.delete('rewards')
+        self.redis.delete('dones')
+        self.redis.delete('next_states')
+        self.redis.delete('next_images')

@@ -90,3 +90,12 @@ class AuxClrMemory(Dataset):
                 self.__del_image_file(state)
                 
         del self.images[:]
+
+    def save_redis(self):
+        self.redis.append('images', self.images)
+
+    def load_redis(self):
+        self.images = self.redis.lrange('images', 0, -1)
+
+    def delete_redis(self):
+        self.redis.delete('images')
