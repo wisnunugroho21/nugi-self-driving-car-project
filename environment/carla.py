@@ -15,7 +15,7 @@ import ray
 import carla
 
 class CarlaEnv():
-    def __init__(self, im_height = 480, im_width = 480, im_preview = False, max_step = 512, index_pos = None, camera_type = 'rgb'):
+    def __init__(self, im_height = 480, im_width = 480, im_preview = False, max_step = 512, index_pos = None):
         self.cur_step           = 0
         self.collision_hist     = []
         self.crossed_line_hist  = []
@@ -32,8 +32,6 @@ class CarlaEnv():
         self.im_preview             = im_preview
         self.max_step               = max_step
         self.index_pos              = index_pos
-        self.camera_type            = camera_type
-
         self.observation_space      = Box(low = -1.0, high = 1.0, shape = (im_height, im_width))
         self.action_space           = Box(low = -1.0, high = 1.0, shape = (2, 1))
 
@@ -43,12 +41,8 @@ class CarlaEnv():
 
         self.model_3        = blueprint_library.filter('model3')[0]        
         self.col_detector   = blueprint_library.find('sensor.other.collision')
-        self.crl_detector   = blueprint_library.find('sensor.other.lane_invasion') 
-
-        if camera_type == 'rgb':
-            self.rgb_cam    = blueprint_library.find('sensor.camera.rgb')    
-        elif camera_type == 'semantic':
-            self.rgb_cam    = blueprint_library.find('sensor.camera.semantic_segmentation')
+        self.crl_detector   = blueprint_library.find('sensor.other.lane_invasion')
+        self.rgb_cam        = blueprint_library.find('sensor.camera.rgb')
 
         self.rgb_cam.set_attribute('image_size_x', f'{im_height}')
         self.rgb_cam.set_attribute('image_size_y', f'{im_width}')
