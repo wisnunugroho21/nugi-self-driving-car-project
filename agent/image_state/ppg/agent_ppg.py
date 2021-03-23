@@ -28,6 +28,7 @@ class AgentPpg():
         self.n_aux_update       = n_aux_update
 
         self.device             = set_device(self.use_gpu)
+        self.policy_dist        = policy_dist
 
         self.policy             = Policy_Model(state_dim, action_dim, self.use_gpu).float().to(self.device)
         self.policy_old         = Policy_Model(state_dim, action_dim, self.use_gpu).float().to(self.device)
@@ -35,9 +36,7 @@ class AgentPpg():
         self.value              = Value_Model(state_dim).float().to(self.device)
         self.value_old          = Value_Model(state_dim).float().to(self.device)
 
-        self.cnn                = CnnModel().float().to(self.device)
-
-        self.policy_dist        = policy_dist
+        self.cnn                = CnnModel().float().to(self.device)        
 
         self.policy_memory      = policy_memory
         self.auxppg_memory      = auxppg_memory

@@ -7,8 +7,6 @@ class PolicyModel(nn.Module):
     def __init__(self, state_dim, action_dim, use_gpu = True):
       super(PolicyModel, self).__init__()
 
-      self.std                  = torch.FloatTensor([1.0, 0.5, 0.5]).to(set_device(use_gpu))
-
       self.state_extractor      = nn.Sequential( nn.Linear(1, 32), nn.ReLU() )
       self.nn_layer             = nn.Sequential( nn.Linear(160, 320), nn.ReLU(), nn.Linear(320, 128), nn.ReLU() )
       
@@ -30,6 +28,6 @@ class PolicyModel(nn.Module):
       critic        = self.critic_layer(x[:, 96:128])
 
       if detach:
-        return (action.detach(), self.std.detach()), critic.detach()
+        return action.detach(), critic.detach()
       else:
-        return (action, self.std), critic
+        return action, critic
