@@ -61,8 +61,7 @@ class AgentCqlClr():
             res                         = self.cnn(images)
             next_res                    = self.cnn(next_images, True)
 
-            action_datas                = self.policy(res, states, True)
-            predicted_actions           = self.policy_dist.sample(action_datas).detach()
+            predicted_actions           = self.policy(res, states, True)
             next_value                  = self.value(next_res, next_states, True)
 
             naive_predicted_q_value     = self.soft_q(res, states, predicted_actions)
@@ -80,8 +79,7 @@ class AgentCqlClr():
         with torch.cuda.amp.autocast():
             res                 = self.cnn(images, True)
 
-            action_datas        = self.policy(res, states, True)
-            predicted_actions   = self.policy_dist.sample(action_datas).detach()
+            predicted_actions   = self.policy(res, states, True)
             q_value             = self.soft_q(res, states, predicted_actions, True)
             
             predicted_value     = self.value(res, states)
@@ -98,9 +96,7 @@ class AgentCqlClr():
         with torch.cuda.amp.autocast():
             res                 = self.cnn(images, True)
 
-            action_datas        = self.policy(res, states)
-            predicted_actions   = self.policy_dist.sample(action_datas)
-
+            predicted_actions   = self.policy(res, states)
             q_value             = self.soft_q(states, predicted_actions)
 
             loss = self.policyLoss.compute_loss(q_value)

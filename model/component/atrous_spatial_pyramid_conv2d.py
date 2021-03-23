@@ -8,8 +8,8 @@ class AtrousSpatialPyramidConv2d(nn.Module):
         super(AtrousSpatialPyramidConv2d, self).__init__()        
 
         self.extractor1 = SpatialAtrousExtractor(dim_in, 1)
-        self.extractor2 = SpatialAtrousExtractor(dim_in, 4)
-        self.extractor3 = SpatialAtrousExtractor(dim_in, 8)
+        self.extractor2 = SpatialAtrousExtractor(dim_in, 3)
+        self.extractor3 = SpatialAtrousExtractor(dim_in, 6)
 
         self.out = nn.Sequential(
             nn.Conv2d(3 * dim_in, dim_out, kernel_size = 1)
