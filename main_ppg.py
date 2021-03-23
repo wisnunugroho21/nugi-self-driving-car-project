@@ -20,7 +20,7 @@ from agent.image_state.ppg.agent_ppg_semantic import AgentPpgSemantic
 
 ############## Hyperparameters ##############
 
-load_weights            = False # If you want to load the agent, set this to True
+load_weights            = True # If you want to load the agent, set this to True
 save_weights            = True # If you want to save the agent, set this to True
 is_training_mode        = True # If you want to train the agent, set this to True. But set this otherwise if you only want to test it
 use_gpu                 = True
@@ -36,7 +36,7 @@ n_saved                 = n_aux_update
 
 policy_kl_range         = 0.03
 policy_params           = 5
-value_clip              = 20.0
+value_clip              = 5.0
 entropy_coef            = 0.0
 vf_loss_coef            = 1.0
 batch_size              = 32
@@ -47,7 +47,7 @@ gamma                   = 0.95
 learning_rate           = 3e-4
 
 folder                  = 'weights/carla2'
-env                     = CarlaSemanticEnv(im_height = 320, im_width = 320, im_preview = False, max_step = 512, camera_type = 'semantic') 
+env                     = CarlaSemanticEnv(im_height = 320, im_width = 320, im_preview = False, max_step = 512) 
 
 state_dim           = None
 action_dim          = None
