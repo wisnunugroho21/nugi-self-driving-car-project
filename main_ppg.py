@@ -5,9 +5,9 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from environment.carla_semantic import CarlaSemanticEnv
-from model.carla_semantic.policy_model import PolicyModel
-from model.carla_semantic.value_model import ValueModel
-from model.carla_semantic.cnn_model import CnnModel
+from model.carla_semantic.ppg.policy_model import PolicyModel
+from model.carla_semantic.ppg.value_model import ValueModel
+from model.carla_semantic.ppg.cnn_model import CnnModel
 from distribution.normal import NormalDist
 from executor.standard import Executor
 from runner.iteration.carla_runner import CarlaRunner
@@ -20,7 +20,7 @@ from agent.image_state.ppg.agent_ppg_semantic import AgentPpgSemantic
 
 ############## Hyperparameters ##############
 
-load_weights            = True # If you want to load the agent, set this to True
+load_weights            = False # If you want to load the agent, set this to True
 save_weights            = True # If you want to save the agent, set this to True
 is_training_mode        = True # If you want to train the agent, set this to True. But set this otherwise if you only want to test it
 use_gpu                 = True
