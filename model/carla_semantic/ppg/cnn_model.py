@@ -9,7 +9,7 @@ class CnnModel(nn.Module):
       super(CnnModel, self).__init__()   
 
       self.conv = nn.Sequential(
-        AtrousSpatialPyramidConv2d(21, 8),
+        AtrousSpatialPyramidConv2d(21, 7, 21),
         nn.ReLU(),
         DepthwiseSeparableConv2d(21, 8, kernel_size = 3, stride = 1, padding = 1),
         nn.ReLU(),

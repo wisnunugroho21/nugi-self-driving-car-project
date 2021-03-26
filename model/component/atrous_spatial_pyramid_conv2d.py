@@ -4,15 +4,15 @@ import torch.nn as nn
 from model.component.spatial_atrous_extractor import SpatialAtrousExtractor
 
 class AtrousSpatialPyramidConv2d(nn.Module):
-    def __init__(self, dim_in, dim_out):
+    def __init__(self, dim_in, dim_mid, dim_out):
         super(AtrousSpatialPyramidConv2d, self).__init__()        
 
-        self.extractor1 = SpatialAtrousExtractor(dim_in, 1)
-        self.extractor2 = SpatialAtrousExtractor(dim_in, 2)
-        self.extractor3 = SpatialAtrousExtractor(dim_in, 4)
+        self.extractor1 = SpatialAtrousExtractor(dim_in, dim_mid, 1)
+        self.extractor2 = SpatialAtrousExtractor(dim_in, dim_mid, 2)
+        self.extractor3 = SpatialAtrousExtractor(dim_in, dim_mid, 4)
 
         self.out = nn.Sequential(
-            nn.Conv2d(3, dim_out, kernel_size = 1)
+            nn.Conv2d(3 * dim_mid, dim_out, kernel_size = 1)
         )
 
     def forward(self, x):

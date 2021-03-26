@@ -151,12 +151,12 @@ class CarlaEnv():
         kmh     = math.sqrt(v.x ** 2 + v.y ** 2)
                 
         loc     = self.vehicle.get_location()
-        dif_x   = loc.x - prev_loc.x if loc.x - prev_loc.x >= 0.05 else 0
-        dif_y   = loc.y - prev_loc.y if loc.y - prev_loc.y >= 0.05 else 0
+        dif_x   = loc.x - prev_loc.x if loc.x - prev_loc.x >= 0.03 else 0
+        dif_y   = loc.y - prev_loc.y if loc.y - prev_loc.y >= 0.03 else 0
         dif_loc = math.sqrt(dif_x ** 2 + dif_y ** 2)
 
         done    = False
-        reward  = (dif_loc * 10) - 0.1        
+        reward  = (dif_loc * 10)
         
         image   = self._process_image(self.cam_queue.get())
         if len(self.crossed_line_hist) > 0 or len(self.collision_hist) > 0 or loc.x >= -100 or loc.y >= -10 or self.cur_step >= self.max_step:

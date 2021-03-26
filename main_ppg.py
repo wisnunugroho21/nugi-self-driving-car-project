@@ -5,9 +5,9 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from environment.carla_semantic import CarlaSemanticEnv
-from model.carla_semantic.policy_model import PolicyModel
-from model.carla_semantic.value_model import ValueModel
-from model.carla_semantic.cnn_model import CnnModel
+from model.carla_semantic.ppg.policy_model import PolicyModel
+from model.carla_semantic.ppg.value_model import ValueModel
+from model.carla_semantic.ppg.cnn_model import CnnModel
 from distribution.normal import NormalDist
 from executor.standard import Executor
 from runner.iteration.carla_runner import CarlaRunner
