@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from helper.pytorch import set_device, to_tensor, to_numpy
 
 class AgentCql():
-    def __init__(self, Policy_Model, Value_Model, Q_Model, CnnModel, state_dim, action_dim, policy_dist, q_loss, v_loss, policy_loss, 
+    def __init__(self, Policy_Model, Value_Model, Q_Model, CnnModel, state_dim, action_dim, q_loss, v_loss, policy_loss, 
         policy_memory, is_training_mode = True, batch_size = 32, cql_epochs = 4, learning_rate = 3e-4, 
         folder = 'model', use_gpu = True):
 
@@ -20,7 +20,6 @@ class AgentCql():
         self.cql_epochs         = cql_epochs
 
         self.device             = set_device(self.use_gpu)
-        self.policy_dist        = policy_dist
         
         self.soft_q             = Q_Model(state_dim, action_dim).float().to(self.device)
         self.value              = Value_Model(state_dim).float().to(self.device)
@@ -118,16 +117,11 @@ class AgentCql():
         self.policy_memory.save_all(states, images, actions, rewards, dones, next_states, next_images, save_tensor_images = False)
         
     def act(self, state, image):
-        state, image        = state.unsqueeze(0).float().to(self.device), self.trans(image).unsqueeze(0).float().to(self.device)
+        state, image    = state.unsqueeze(0).float().to(self.device), self.trans(image).unsqueeze(0).float().to(self.device)
 
-        res                 = self.cnn(image)
-        action_datas, _     = self.policy(res, state)
-        
-        if self.is_training_mode:
-            action = self.policy_dist.sample(action_datas)
-        else:
-            action = self.policy_dist.act_deterministic(action_datas)
-              
+        res     = self.cnn(image)
+        action  = self.policy(res, state)
+                      
         return action.detach().cpu().numpy()
 
     def update(self):

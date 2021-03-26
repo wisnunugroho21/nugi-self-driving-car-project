@@ -12,6 +12,14 @@ import queue
 from PIL import Image
 import ray
 
+try:
+    sys.path.append(glob.glob('D:/Projects/Simulator/CARLA_0.9.11/WindowsNoEditor/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
+        sys.version_info.major,
+        sys.version_info.minor,
+        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+except IndexError:
+    pass
+
 import carla
 from environment.carla import CarlaEnv
 

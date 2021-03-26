@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from helper.pytorch import set_device, to_tensor, to_numpy
 
 class AgentCqlClr():
-    def __init__(self, Policy_Model, Value_Model, Q_Model, CnnModel, ProjectionModel, state_dim, action_dim, policy_dist, q_loss, v_loss, policy_loss, auxclr_loss, 
+    def __init__(self, Policy_Model, Value_Model, Q_Model, CnnModel, ProjectionModel, state_dim, action_dim, q_loss, v_loss, policy_loss, auxclr_loss, 
         policy_memory, auxclr_memory, is_training_mode = True, batch_size = 32, cql_epochs = 4, auxclr_epochs = 4, learning_rate = 3e-4, 
         folder = 'model', use_gpu = True):
 
@@ -28,8 +28,6 @@ class AgentCqlClr():
 
         self.cnn                = CnnModel().float().to(self.device)
         self.auxclr_projection  = ProjectionModel().float().to(self.device)
-
-        self.policy_dist        = policy_dist
 
         self.policy_memory      = policy_memory
         self.auxclr_memory      = auxclr_memory
@@ -150,16 +148,11 @@ class AgentCqlClr():
         self.policy_memory.save_all(states, images, actions, rewards, dones, next_states, next_images, save_tensor_images = False)
         
     def act(self, state, image):
-        state, image        = state.unsqueeze(0).float().to(self.device), self.trans(image).unsqueeze(0).float().to(self.device)
+        state, image    = state.unsqueeze(0).float().to(self.device), self.trans(image).unsqueeze(0).float().to(self.device)
 
-        res                 = self.cnn(image)
-        action_datas, _     = self.policy(res, state)
-        
-        if self.is_training_mode:
-            action = self.policy_dist.sample(action_datas)
-        else:
-            action = self.policy_dist.act_deterministic(action_datas)
-              
+        res     = self.cnn(image)
+        action  = self.policy(res, state)
+                      
         return action.detach().cpu().numpy()
 
     def update(self):
@@ -170,8 +163,7 @@ class AgentCqlClr():
         torch.save({
             'policy_state_dict': self.policy.state_dict(),
             'value_state_dict': self.value.state_dict(),
-            'soft_q1_state_dict': self.soft_q1.state_dict(),
-            'soft_q2_state_dict': self.soft_q2.state_dict(),
+            'soft_q_state_dict': self.soft_q.state_dict(),
             'cnn_state_dict': self.cnn.state_dict(),
             'auxclr_pro_state_dict': self.auxclr_projection.state_dict(),
             'policy_optimizer_state_dict': self.policy_optimizer.state_dict(),
@@ -182,7 +174,7 @@ class AgentCqlClr():
             'value_scaler_state_dict': self.value_scaler.state_dict(),
             'soft_q_scaler_state_dict': self.soft_q_scaler.state_dict(),
             'auxclr_scaler_state_dict': self.auxclr_scaler.state_dict()
-            }, self.folder + '/cql.tar')
+        }, self.folder + '/cql.tar')
         
     def load_weights(self, device = None):
         if device == None:
@@ -191,8 +183,7 @@ class AgentCqlClr():
         model_checkpoint = torch.load(self.folder + '/cql.tar', map_location = device)
         self.policy.load_state_dict(model_checkpoint['policy_state_dict'])        
         self.value.load_state_dict(model_checkpoint['value_state_dict'])
-        self.soft_q1.load_state_dict(model_checkpoint['soft_q1_state_dict'])        
-        self.soft_q2.load_state_dict(model_checkpoint['soft_q2_state_dict'])
+        self.soft_q.load_state_dict(model_checkpoint['soft_q_state_dict'])
         self.cnn.load_state_dict(model_checkpoint['cnn_state_dict'])
         self.auxclr_projection.load_state_dict(model_checkpoint['auxclr_pro_state_dict'])
         self.policy_optimizer.load_state_dict(model_checkpoint['policy_optimizer_state_dict'])
