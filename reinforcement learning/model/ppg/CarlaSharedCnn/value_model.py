@@ -7,7 +7,7 @@ class ValueModel(nn.Module):
 
       self.state_extractor      = nn.Sequential( nn.Linear(2, 32), nn.ReLU() )
       self.image_extractor      = nn.Sequential( nn.Linear(128, 128), nn.ReLU() )
-      self.nn_layer             = nn.Sequential( nn.Linear(160, 160), nn.ReLU(), nn.Linear(160, 32), nn.ReLU() )
+      self.nn_layer             = nn.Sequential( nn.Linear(160, 32), nn.ReLU() )
       self.critic_layer         = nn.Sequential( nn.Linear(32, 1) )
         
     def forward(self, res, state, detach = False):
