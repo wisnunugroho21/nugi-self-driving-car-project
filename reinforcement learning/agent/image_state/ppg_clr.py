@@ -124,10 +124,13 @@ class AgentImageStatePPGClr(AgentPPG):
             for input_images, target_images in dataloader:
                 self._training_aux_clr(input_images.float().to(self.device), target_images.float().to(self.device))
 
-        self.aux_clr_memory.clear_memory()
+            for target_param, param in zip(self.cnn_target.parameters(), self.cnn.parameters()):
+                target_param.data.copy_(target_param.data * self.soft_tau  + param.data  * (1.0 - self.soft_tau))
 
-        self.cnn_target.load_state_dict(self.cnn.state_dict())
-        self.projector_target.load_state_dict(self.projector.state_dict())
+            for target_param, param in zip(self.projector_target.parameters(), self.projector.parameters()):
+                target_param.data.copy_(target_param.data * self.soft_tau  + param.data  * (1.0 - self.soft_tau))
+
+        self.aux_clr_memory.clear_memory()
 
     def update(self):
         self._update_ppo()
