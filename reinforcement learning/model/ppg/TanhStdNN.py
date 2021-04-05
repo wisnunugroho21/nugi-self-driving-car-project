@@ -20,7 +20,7 @@ class Policy_Model(nn.Module):
 
         self.actor_std_layer = nn.Sequential(
           nn.Linear(256, action_dim),
-          nn.Softplus()
+          nn.Sigmoid()
         ).float().to(set_device(use_gpu))
 
         self.critic_layer = nn.Sequential(

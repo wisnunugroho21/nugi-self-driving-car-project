@@ -17,6 +17,10 @@ class PolicyModel(nn.Module):
       self.actor_gas_layer      = nn.Sequential( nn.Linear(32, 1), nn.Sigmoid() )
       self.actor_break_layer    = nn.Sequential( nn.Linear(32, 1), nn.Sigmoid() )
 
+      self.std_steer_layer      = nn.Sequential( nn.Linear(32, 1), nn.Sigmoid() )
+      self.std_gas_layer        = nn.Sequential( nn.Linear(32, 1), nn.Sigmoid() )
+      self.std_break_layer      = nn.Sequential( nn.Linear(32, 1), nn.Sigmoid() )
+
       self.critic_layer         = nn.Sequential( nn.Linear(32, 1) )       
         
     def forward(self, res, state, detach = False):
@@ -29,10 +33,15 @@ class PolicyModel(nn.Module):
       action_gas    = self.actor_gas_layer(x[:, 32:64])
       action_break  = self.actor_break_layer(x[:, 64:96])
 
+      std_steer     = self.std_steer_layer(x[:, :32])
+      std_gas       = self.std_gas_layer(x[:, 32:64]) * 0.5
+      std_break     = self.std_break_layer(x[:, 64:96]) * 0.5
+
       action        = torch.cat((action_steer, action_gas, action_break), -1)
+      std           = torch.cat((std_steer, std_gas, std_break), -1)
       critic        = self.critic_layer(x[:, 96:128])
 
       if detach:
-        return (action.detach(), self.std.detach()), critic.detach()
+        return (action.detach(), std.detach()), critic.detach()
       else:
-        return (action, self.std), critic
+        return (action, std), critic
