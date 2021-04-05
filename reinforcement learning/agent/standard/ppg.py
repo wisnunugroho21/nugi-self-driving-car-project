@@ -92,7 +92,7 @@ class AgentPPG():
 
         for _ in range(self.ppo_epochs):       
             for states, actions, rewards, dones, next_states in dataloader:
-                self.__training_ppo(to_tensor(states, use_gpu = self.use_gpu), actions.float().to(self.device), rewards.float().to(self.device), 
+                self._training_ppo(to_tensor(states, use_gpu = self.use_gpu), actions.float().to(self.device), rewards.float().to(self.device), 
                     dones.float().to(self.device), to_tensor(next_states, use_gpu = self.use_gpu))
 
         states, _, _, _, _ = self.ppo_memory.get_all_items()
@@ -107,7 +107,7 @@ class AgentPPG():
 
         for _ in range(self.aux_ppg_epochs):       
             for states in dataloader:
-                self.__training_aux_ppg(to_tensor(states, use_gpu = self.use_gpu))
+                self._training_aux_ppg(to_tensor(states, use_gpu = self.use_gpu))
 
         self.aux_ppg_memory.clear_memory()
         self.policy_old.load_state_dict(self.policy.state_dict())    

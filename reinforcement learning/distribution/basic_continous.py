@@ -19,7 +19,7 @@ class BasicContinous():
     def sample(self, datas):
         mean, std = datas
 
-        distribution = Normal(mean, std)
+        distribution = Normal(mean, std.squeeze())
         return distribution.sample().float().to(set_device(self.use_gpu)).squeeze(0)
         
     def entropy(self, datas):
