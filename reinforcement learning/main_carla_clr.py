@@ -44,13 +44,13 @@ n_saved                 = n_aux_update
 
 policy_kl_range         = 0.05
 policy_params           = 5
-value_clip              = 20.0
+value_clip              = 10.0
 entropy_coef            = 0.0
 vf_loss_coef            = 1.0
 batch_size              = 32
-ppo_epochs              = 5
-aux_ppg_epochs          = 5
-aux_clr_epochs          = 5
+ppo_epochs              = 10
+aux_ppg_epochs          = 10
+aux_clr_epochs          = 10
 action_std              = 1.0
 gamma                   = 0.95
 learning_rate           = 3e-4
