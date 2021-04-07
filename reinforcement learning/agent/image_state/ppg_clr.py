@@ -90,6 +90,13 @@ class AgentImageStatePPGClr(AgentPPG):
         self.aux_clr_scaler.step(self.aux_clr_optimizer)
         self.aux_clr_scaler.update()
 
+    def _update_target_clr(self):
+        for target_param, param in zip(self.cnn_target.parameters(), self.cnn.parameters()):
+            target_param.data.copy_(target_param.data * self.soft_tau  + param.data  * (1.0 - self.soft_tau))
+
+        for target_param, param in zip(self.projector_target.parameters(), self.projector.parameters()):
+            target_param.data.copy_(target_param.data * self.soft_tau  + param.data  * (1.0 - self.soft_tau))
+
     def _update_ppo(self):
         dataloader = DataLoader(self.ppo_memory, self.batch_size, shuffle = False, num_workers = 8)
 
@@ -124,12 +131,7 @@ class AgentImageStatePPGClr(AgentPPG):
         for _ in range(self.aux_clr_epochs):
             for input_images, target_images in dataloader:
                 self._training_aux_clr(input_images.float().to(self.device), target_images.float().to(self.device))
-
-            for target_param, param in zip(self.cnn_target.parameters(), self.cnn.parameters()):
-                target_param.data.copy_(target_param.data * self.soft_tau  + param.data  * (1.0 - self.soft_tau))
-
-            for target_param, param in zip(self.projector_target.parameters(), self.projector.parameters()):
-                target_param.data.copy_(target_param.data * self.soft_tau  + param.data  * (1.0 - self.soft_tau))
+            self._update_target_clr()
 
         self.aux_clr_memory.clear_memory()
 
