@@ -15,7 +15,7 @@ from environment.wrapper.gym_wrapper import GymWrapper
 from loss.other.joint_aux import JointAux
 from loss.ppo.truly_ppo import TrulyPPO
 from policy_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
-from model.ppg.TanhNN import Policy_Model, Value_Model
+from model.ppg.TanhStdNN import Policy_Model, Value_Model
 from memory.policy.standard import PolicyMemory
 from memory.aux_ppg.standard import auxPpgMemory
 

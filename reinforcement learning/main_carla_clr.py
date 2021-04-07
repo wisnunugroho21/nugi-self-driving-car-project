@@ -17,7 +17,7 @@ from loss.ppo.truly_ppo import TrulyPPO
 from loss.other.simclr import SimCLR
 from policy_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
 from model.ppg.CarlaSharedCnn.cnn_model import CnnModel
-from model.ppg.CarlaSharedCnn.policy_model import PolicyModel
+from model.ppg.CarlaSharedCnn.policy_std_model import PolicyModel
 from model.ppg.CarlaSharedCnn.value_model import ValueModel
 from model.ppg.CarlaSharedCnn.projection_model import ProjectionModel
 from memory.policy.image_state.standard import ImageStatePolicyMemory
@@ -28,7 +28,7 @@ from helpers.pytorch_utils import set_device
 
 ############## Hyperparameters ##############
 
-load_weights            = False # If you want to load the agent, set this to True
+load_weights            = True # If you want to load the agent, set this to True
 save_weights            = True # If you want to save the agent, set this to True
 is_training_mode        = True # If you want to train the agent, set this to True. But set this otherwise if you only want to test it
 use_gpu                 = True
@@ -45,12 +45,12 @@ n_saved                 = n_aux_update
 policy_kl_range         = 0.05
 policy_params           = 5
 value_clip              = 20.0
-entropy_coef            = 0.0
+entropy_coef            = 1.0
 vf_loss_coef            = 1.0
 batch_size              = 32
-ppo_epochs              = 5
-aux_ppg_epochs          = 5
-aux_clr_epochs          = 5
+ppo_epochs              = 10
+aux_ppg_epochs          = 10
+aux_clr_epochs          = 10
 action_std              = 1.0
 gamma                   = 0.95
 learning_rate           = 3e-4
@@ -115,8 +115,8 @@ cnn                 = Cnn_Model().float().to(set_device(use_gpu))
 policy              = Policy_Model(state_dim, action_dim, use_gpu).float().to(set_device(use_gpu))
 value               = Value_Model(state_dim).float().to(set_device(use_gpu))
 projector           = Projection_Model().float().to(set_device(use_gpu))
-ppo_optimizer       = Adam(list(policy.parameters()) + list(value.parameters()), lr = learning_rate)        
-aux_ppg_optimizer   = Adam(list(policy.parameters()), lr = learning_rate)
+ppo_optimizer       = Adam(list(policy.parameters()) + list(value.parameters()) + list(cnn.parameters()), lr = learning_rate)        
+aux_ppg_optimizer   = Adam(list(policy.parameters()) + list(cnn.parameters()), lr = learning_rate)
 aux_clr_optimizer   = Adam(list(cnn.parameters()) + list(projector.parameters()), lr = learning_rate)
 
 agent = Agent(projector, cnn, policy, value, state_dim, action_dim, policy_dist, ppo_loss, aux_ppg_loss, aux_clr_loss, ppo_memory, aux_ppg_memory, aux_clr_memory,
