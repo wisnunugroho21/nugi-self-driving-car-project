@@ -8,5 +8,6 @@ class SimCLR():
     def compute_loss(self, first_encoded, second_encoded):
         indexes     = torch.arange(first_encoded.shape[0]).long().to(set_device(self.use_gpu))   
         
-        similarity  = torch.nn.functional.cosine_similarity(first_encoded.unsqueeze(1), second_encoded.unsqueeze(0), dim = 2)
+        # similarity  = torch.nn.functional.cosine_similarity(first_encoded.unsqueeze(1), second_encoded.unsqueeze(0), dim = 2)
+        similarity = torch.mm(first_encoded, second_encoded.t())
         return torch.nn.functional.cross_entropy(similarity, indexes)
