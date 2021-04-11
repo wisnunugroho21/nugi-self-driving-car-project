@@ -169,6 +169,7 @@ class CarlaEnv():
 
         elif len(self.crossed_line_hist) > 0 or len(self.collision_hist) > 0:
             done    = True
+            reward  = -1
 
         elif loc.x >= -100 or loc.y >= -10:
             done    = True

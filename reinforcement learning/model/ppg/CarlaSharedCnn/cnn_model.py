@@ -12,7 +12,7 @@ class CnnModel(nn.Module):
       self.bn3 = nn.BatchNorm2d(64)
 
       self.conv1 = nn.Sequential(
-        DepthwiseSeparableConv2d(3, 8, kernel_size = 3, stride = 1, padding = 1),
+        AtrousSpatialPyramidConv2d(3, 8),
         nn.ReLU(),
         DepthwiseSeparableConv2d(8, 16, kernel_size = 3, stride = 1, padding = 1),
         nn.ReLU(),

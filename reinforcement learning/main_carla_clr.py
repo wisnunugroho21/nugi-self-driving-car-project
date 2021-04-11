@@ -42,7 +42,7 @@ n_update                = 256 # How many episode before you update the Policy
 n_aux_update            = 2
 n_saved                 = n_aux_update
 
-policy_kl_range         = 0.05
+policy_kl_range         = 0.03
 policy_params           = 5
 value_clip              = 20.0
 entropy_coef            = 1.0
