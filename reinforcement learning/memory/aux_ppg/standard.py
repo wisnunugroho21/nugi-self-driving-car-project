@@ -16,7 +16,7 @@ class auxPpgMemory(Dataset):
         return len(self.states)
 
     def __getitem__(self, idx):
-        return torch.tensor(self.states[idx])
+        return torch.FloatTensor(self.states[idx])
 
     def save_eps(self, state):
         if len(self) >= self.capacity:
