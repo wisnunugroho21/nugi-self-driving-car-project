@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from torch.utils.data import Dataset
 
 class PolicyMemory(Dataset):
@@ -21,9 +22,8 @@ class PolicyMemory(Dataset):
         return len(self.dones)
 
     def __getitem__(self, idx):
-        return np.array(self.states[idx], dtype = np.float32), np.array(self.actions[idx], dtype = np.float32), \
-            np.array([self.rewards[idx]], dtype = np.float32), np.array([self.dones[idx]], dtype = np.float32), \
-            np.array(self.next_states[idx], dtype = np.float32)      
+        return torch.tensor(self.states[idx]), torch.tensor(self.actions[idx]), torch.tensor(self.rewards[idx]).unsqueeze(1), \
+            torch.tensor(self.dones[idx]).unsqueeze(1), torch.tensor(self.next_states[idx])
 
     def save_eps(self, state, action, reward, done, next_state):
         if len(self) >= self.capacity:

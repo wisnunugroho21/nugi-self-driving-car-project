@@ -34,7 +34,7 @@ class auxClrMemory(Dataset):
         input_images    = self.input_trans(images)
         target_images   = self.target_trans(images)
 
-        return input_images.detach().cpu().numpy(), target_images.detach().cpu().numpy()
+        return input_images.detach().cpu(), target_images.detach().cpu()
 
     def save_eps(self, image):
         if len(self) >= self.capacity:

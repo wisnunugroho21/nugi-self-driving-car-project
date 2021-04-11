@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 from torch.utils.data import Dataset
 
 class auxPpgMemory(Dataset):
@@ -16,7 +16,7 @@ class auxPpgMemory(Dataset):
         return len(self.states)
 
     def __getitem__(self, idx):
-        return np.array(self.states[idx], dtype = np.float32)    
+        return torch.tensor(self.states[idx])
 
     def save_eps(self, state):
         if len(self) >= self.capacity:
