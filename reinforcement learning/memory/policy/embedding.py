@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from memory.policy.standard import PolicyMemory
 
@@ -19,7 +20,7 @@ class EmbeddingPolicyMemory(PolicyMemory):
 
     def __getitem__(self, idx):
         states, actions, rewards, dones, next_states = super().__getitem__(idx)
-        return states, actions, rewards, dones, next_states, np.array(self.available_actions[idx], dtype = np.float32)      
+        return states, actions, rewards, dones, next_states, torch.FloatTensor(self.available_actions[idx])
 
     def save_eps(self, state, action, reward, done, next_state, available_action):
         super().save_eps(state, reward, action, done, next_state)

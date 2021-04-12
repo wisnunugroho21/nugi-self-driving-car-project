@@ -1,10 +1,9 @@
-import numpy as np
+import torch
 from PIL import Image
 import random
 import string
 import os
 
-import numpy as np
 from memory.aux_ppg.standard import auxPpgMemory
 
 class auxPpgImageDiskMemory(auxPpgMemory):
@@ -26,7 +25,7 @@ class auxPpgImageDiskMemory(auxPpgMemory):
 
     def __getitem__(self, idx):
         states  = self.__get_image_tens(self.states[idx])
-        return np.array(states, dtype = np.float32)
+        return torch.FloatTensor(states)
 
     def __save_tensor_as_image(self, tensor):
         image_name  = self.folder_img + ''.join(random.choices(string.ascii_uppercase + string.digits, k = 12))

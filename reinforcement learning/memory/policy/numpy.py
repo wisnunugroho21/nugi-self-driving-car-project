@@ -18,8 +18,8 @@ class NumpyPolicyMemory(PolicyMemory):
         return len(self.dones)
 
     def __getitem__(self, idx):
-        return torch.from_numpy(self.states[idx]), torch.from_numpy(self.actions[idx]), torch.from_numpy(self.rewards[idx]).unsqueeze(1), \
-            torch.from_numpy(self.dones[idx]).unsqueeze(1), torch.from_numpy(self.next_states[idx])     
+        return torch.from_numpy(self.states[idx]), torch.from_numpy(self.actions[idx]), torch.from_numpy(self.rewards[idx]), \
+            torch.from_numpy(self.dones[idx]), torch.from_numpy(self.next_states[idx])     
 
     def save_eps(self, state, action, reward, done, next_state):
         if len(self) == 0:

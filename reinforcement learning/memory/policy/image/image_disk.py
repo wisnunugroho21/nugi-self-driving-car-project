@@ -1,10 +1,10 @@
-import numpy as np
+import torch
+import torchvision.transforms as transforms
 from PIL import Image
 import random
 import string
 import os
 
-import numpy as np
 from memory.policy.standard import PolicyMemory
 
 class ImagePolicyMemory(PolicyMemory):
@@ -32,6 +32,11 @@ class ImagePolicyMemory(PolicyMemory):
             if len(self.dones) >= self.capacity:
                 raise Exception('datas cannot be longer than capacity')
 
+        self.trans  = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
     def __len__(self):
         return len(self.dones)
 
@@ -39,9 +44,11 @@ class ImagePolicyMemory(PolicyMemory):
         states      = self.__get_image_tens(self.states[idx])
         next_states = self.__get_image_tens(self.next_states[idx])
 
-        return np.array(states, dtype = np.float32), np.array(self.actions[idx], dtype = np.float32), \
-            np.array([self.rewards[idx]], dtype = np.float32), np.array([self.dones[idx]], dtype = np.float32), \
-            np.array(next_states, dtype = np.float32)
+        states      = self.trans(states)
+        next_states = self.trans(next_states)
+
+        return torch.FloatTensor(states), torch.FloatTensor(self.actions[idx]), torch.FloatTensor([self.rewards[idx]]), \
+            torch.FloatTensor([self.dones[idx]]), torch.FloatTensor(next_states)
 
     def __save_tensor_as_image(self, tensor):
         image_name  = self.folder_img + ''.join(random.choices(string.ascii_uppercase + string.digits, k = 12))
