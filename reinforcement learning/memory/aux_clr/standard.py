@@ -11,7 +11,7 @@ class auxClrMemory(Dataset):
 
         if self.input_trans is None:
             self.input_trans = transforms.Compose([
-                transforms.RandomResizedCrop(320),                           
+                # transforms.RandomResizedCrop(320),                           
                 transforms.RandomApply([transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)], p = 0.8),
                 transforms.RandomGrayscale(p = 0.2),
                 transforms.GaussianBlur(33),

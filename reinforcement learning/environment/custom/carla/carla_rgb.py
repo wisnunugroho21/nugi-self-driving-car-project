@@ -156,8 +156,8 @@ class CarlaEnv():
         kmh     = math.sqrt(v.x ** 2 + v.y ** 2)
                 
         loc     = self.vehicle.get_location()
-        dif_x   = loc.x - prev_loc.x if loc.x - prev_loc.x >= 0.03 else 0
-        dif_y   = loc.y - prev_loc.y if loc.y - prev_loc.y >= 0.03 else 0
+        dif_x   = loc.x - prev_loc.x if loc.x - prev_loc.x >= 0.05 else 0
+        dif_y   = loc.y - prev_loc.y if loc.y - prev_loc.y >= 0.05 else 0
         dif_loc = math.sqrt(dif_x ** 2 + dif_y ** 2)
 
         done    = False

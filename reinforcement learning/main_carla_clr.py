@@ -14,7 +14,7 @@ from distribution.basic_continous import BasicContinous
 from environment.custom.carla.carla_rgb import CarlaEnv
 from loss.other.joint_aux import JointAux
 from loss.ppo.truly_ppo import TrulyPPO
-from loss.other.simclr import SimCLR
+from loss.clr.distances import DistancesClr
 from policy_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
 from model.ppg.CarlaSharedCnn.cnn_model import CnnModel
 from model.ppg.CarlaSharedCnn.policy_std_model import PolicyModel
@@ -28,7 +28,7 @@ from helpers.pytorch_utils import set_device
 
 ############## Hyperparameters ##############
 
-load_weights            = True # If you want to load the agent, set this to True
+load_weights            = False # If you want to load the agent, set this to True
 save_weights            = True # If you want to save the agent, set this to True
 is_training_mode        = True # If you want to train the agent, set this to True. But set this otherwise if you only want to test it
 use_gpu                 = True
@@ -71,7 +71,7 @@ Runner              = CarlaRunner
 Executor            = Executor
 Policy_loss         = TrulyPPO
 Aux_loss            = JointAux
-Clr_loss            = SimCLR
+Clr_loss            = DistancesClr
 Wrapper             = CarlaEnv
 Policy_Memory       = ImageStatePolicyMemory
 Aux_Memory          = auxPpgImageStateMemory
