@@ -6,7 +6,4 @@ class DistancesClr():
         self.use_gpu = use_gpu
 
     def compute_loss(self, first_encoded, second_encoded):
-        return torch.nn.PairwiseDistance(second_encoded, first_encoded)
-
-
-        
+        return torch.nn.functional.pairwise_distance(second_encoded, first_encoded).mean()
