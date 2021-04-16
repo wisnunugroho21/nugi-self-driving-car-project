@@ -47,9 +47,6 @@ class AgentPPG():
         self.ppo_scaler         = torch.cuda.amp.GradScaler()
         self.aux_ppg_scaler     = torch.cuda.amp.GradScaler()
 
-        self.policy_old.load_state_dict(self.policy.state_dict())
-        self.value_old.load_state_dict(self.value.state_dict())
-
         if is_training_mode:
           self.policy.train()
           self.value.train()
@@ -88,6 +85,9 @@ class AgentPPG():
         self.aux_ppg_scaler.update()
 
     def _update_ppo(self):
+        self.policy_old.load_state_dict(self.policy.state_dict())
+        self.value_old.load_state_dict(self.value.state_dict()) 
+
         dataloader = DataLoader(self.ppo_memory, self.batch_size, shuffle = False, num_workers = 8)
 
         for _ in range(self.ppo_epochs):       
@@ -97,12 +97,11 @@ class AgentPPG():
 
         states, _, _, _, _ = self.ppo_memory.get_all_items()
         self.aux_ppg_memory.save_all(states)
-        self.ppo_memory.clear_memory()
-
-        self.policy_old.load_state_dict(self.policy.state_dict())
-        self.value_old.load_state_dict(self.value.state_dict())    
+        self.ppo_memory.clear_memory()           
 
     def _update_aux_ppg(self):
+        self.policy_old.load_state_dict(self.policy.state_dict())
+
         dataloader  = DataLoader(self.aux_ppg_memory, self.batch_size, shuffle = False, num_workers = 8)
 
         for _ in range(self.aux_ppg_epochs):       
@@ -110,7 +109,6 @@ class AgentPPG():
                 self._training_aux_ppg(to_tensor(states, use_gpu = self.use_gpu))
 
         self.aux_ppg_memory.clear_memory()
-        self.policy_old.load_state_dict(self.policy.state_dict())    
 
     def update(self):
         self._update_ppo()
@@ -158,9 +156,6 @@ class AgentPPG():
         self.value.load_state_dict(model_checkpoint['value_state_dict'])
         self.ppo_optimizer.load_state_dict(model_checkpoint['ppo_optimizer_state_dict'])        
         self.aux_ppg_optimizer.load_state_dict(model_checkpoint['aux_ppg_optimizer_state_dict'])
-
-        self.policy_old.load_state_dict(self.policy.state_dict())
-        self.value_old.load_state_dict(self.value.state_dict())
 
         if self.is_training_mode:
             self.policy.train()

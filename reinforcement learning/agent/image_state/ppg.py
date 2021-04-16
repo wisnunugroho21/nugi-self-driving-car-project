@@ -60,6 +60,9 @@ class AgentImageStatePPG(AgentPPG):
         self.aux_ppg_scaler.update()
 
     def _update_ppo(self):
+        self.policy_old.load_state_dict(self.policy.state_dict())
+        self.value_old.load_state_dict(self.value.state_dict())
+
         dataloader = DataLoader(self.ppo_memory, self.batch_size, shuffle = False, num_workers = 8)
 
         for _ in range(self.ppo_epochs):       
@@ -70,19 +73,17 @@ class AgentImageStatePPG(AgentPPG):
         images, states, _, _, _, _, _ = self.ppo_memory.get_all_items()
         self.aux_ppg_memory.save_all(images, states)
         self.ppo_memory.clear_memory()
-
-        self.policy_old.load_state_dict(self.policy.state_dict())
-        self.value_old.load_state_dict(self.value.state_dict())
-
+        
     def _update_aux_ppg(self):
+        self.policy_old.load_state_dict(self.policy.state_dict())
+
         dataloader  = DataLoader(self.aux_ppg_memory, self.batch_size, shuffle = False, num_workers = 8)
 
         for _ in range(self.aux_ppg_epochs):       
             for images, states in dataloader:
                 self._training_aux_ppg(images.float().to(self.device), states.float().to(self.device))
 
-        self.aux_ppg_memory.clear_memory()
-        self.policy_old.load_state_dict(self.policy.state_dict())
+        self.aux_ppg_memory.clear_memory()        
 
     def save_memory(self, policy_memory):
         images, states, actions, rewards, dones, next_images, next_states = policy_memory.get_all_items()

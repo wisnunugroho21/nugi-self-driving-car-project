@@ -32,9 +32,6 @@ class AgentImageStatePPGClr(AgentPPG):
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
-
-        self.cnn_target.load_state_dict(self.cnn.state_dict())
-        self.projector_target.load_state_dict(self.projector.state_dict())
         
         self.soft_tau = 0.95
 
@@ -98,6 +95,9 @@ class AgentImageStatePPGClr(AgentPPG):
         self.aux_clr_scaler.update()
 
     def _update_ppo(self):
+        self.policy_old.load_state_dict(self.policy.state_dict())
+        self.value_old.load_state_dict(self.value.state_dict())
+
         dataloader = DataLoader(self.ppo_memory, self.batch_size, shuffle = False, num_workers = 8)
 
         for _ in range(self.ppo_epochs):       
@@ -109,10 +109,9 @@ class AgentImageStatePPGClr(AgentPPG):
         self.aux_ppg_memory.save_all(images, states)
         self.ppo_memory.clear_memory()
 
-        self.policy_old.load_state_dict(self.policy.state_dict())
-        self.value_old.load_state_dict(self.value.state_dict())
-
     def _update_aux_ppg(self):
+        self.policy_old.load_state_dict(self.policy.state_dict())
+
         dataloader  = DataLoader(self.aux_ppg_memory, self.batch_size, shuffle = False, num_workers = 8)
 
         for _ in range(self.aux_ppg_epochs):       
@@ -123,9 +122,10 @@ class AgentImageStatePPGClr(AgentPPG):
         self.aux_clr_memory.save_all(images)
         self.aux_ppg_memory.clear_memory()
 
-        self.policy_old.load_state_dict(self.policy.state_dict())
-
     def _update_aux_clr(self):
+        self.cnn_target.load_state_dict(self.cnn.state_dict())
+        self.projector_target.load_state_dict(self.projector.state_dict())
+
         dataloader  = DataLoader(self.aux_clr_memory, self.batch_size, shuffle = True, num_workers = 8)
 
         for _ in range(self.aux_clr_epochs):
@@ -133,9 +133,6 @@ class AgentImageStatePPGClr(AgentPPG):
                 self._training_aux_clr(input_images.to(self.device), target_images.to(self.device))            
 
         self.aux_clr_memory.clear_memory()
-        
-        self.cnn_target.load_state_dict(self.cnn.state_dict())
-        self.projector_target.load_state_dict(self.projector.state_dict())
 
     def update(self):
         self._update_ppo()
