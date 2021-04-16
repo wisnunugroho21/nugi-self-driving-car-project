@@ -69,12 +69,12 @@ class AgentImageStatePPGClr(AgentPPG):
     def _training_aux_ppg(self, images, states):
         self.aux_ppg_optimizer.zero_grad()        
         with torch.cuda.amp.autocast():
-            res                     = self.cnn(images)
-
-            action_datas, values    = self.policy(res, states)
+            res                     = self.cnn(images, True)
 
             returns                 = self.value(res, states, True)
-            old_action_datas, _     = self.policy_old(res, states, True)                        
+            old_action_datas, _     = self.policy_old(res, states, True)
+
+            action_datas, values    = self.policy(res, states)                        
 
             loss = self.auxLoss.compute_loss(action_datas, old_action_datas, values, returns)
 
