@@ -159,6 +159,9 @@ class AgentPPG():
         self.ppo_optimizer.load_state_dict(model_checkpoint['ppo_optimizer_state_dict'])        
         self.aux_ppg_optimizer.load_state_dict(model_checkpoint['aux_ppg_optimizer_state_dict'])
 
+        self.policy_old.load_state_dict(self.policy.state_dict())
+        self.value_old.load_state_dict(self.value.state_dict())
+
         if self.is_training_mode:
             self.policy.train()
             self.value.train()

@@ -27,6 +27,7 @@ class AgentImageStatePPG(AgentPPG):
         self.ppo_optimizer.zero_grad()
         with torch.cuda.amp.autocast():
             res                 = self.cnn(images)
+
             action_datas, _     = self.policy(res, states)
             values              = self.value(res, states)
 
@@ -45,12 +46,12 @@ class AgentImageStatePPG(AgentPPG):
     def _training_aux_ppg(self, images, states):
         self.aux_ppg_optimizer.zero_grad()        
         with torch.cuda.amp.autocast():
-            res                     = self.cnn(images, True)
+            res                     = self.cnn(images)
+            
+            action_datas, values    = self.policy(res, states)
 
             returns                 = self.value(res, states, True)
-            old_action_datas, _     = self.policy_old(res, states, True) 
-
-            action_datas, values    = self.policy(res, states)                       
+            old_action_datas, _     = self.policy_old(res, states, True)
 
             loss = self.auxLoss.compute_loss(action_datas, old_action_datas, values, returns)
 
@@ -123,6 +124,9 @@ class AgentImageStatePPG(AgentPPG):
         self.aux_ppg_optimizer.load_state_dict(model_checkpoint['aux_ppg_optimizer_state_dict'])   
         self.ppo_scaler.load_state_dict(model_checkpoint['ppo_scaler_state_dict'])        
         self.aux_ppg_scaler.load_state_dict(model_checkpoint['aux_ppg_scaler_state_dict'])  
+
+        self.policy_old.load_state_dict(self.policy.state_dict())
+        self.value_old.load_state_dict(self.value.state_dict())
 
         if self.is_training_mode:
             self.policy.train()

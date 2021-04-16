@@ -38,6 +38,13 @@ class AgentImageStatePPGClr(AgentPPG):
         
         self.soft_tau = 0.95
 
+        if self.is_training_mode:
+            self.cnn.train()
+            self.projector.train()
+        else:
+            self.cnn.eval()
+            self.projector.eval()
+
     def _training_ppo(self, images, states, actions, rewards, dones, next_images, next_states):
         self.ppo_optimizer.zero_grad()
         with torch.cuda.amp.autocast():
@@ -186,12 +193,21 @@ class AgentImageStatePPGClr(AgentPPG):
         self.aux_ppg_scaler.load_state_dict(model_checkpoint['aux_ppg_scaler_state_dict'])  
         self.aux_clr_scaler.load_state_dict(model_checkpoint['aux_clr_scaler_state_dict'])
 
+        self.policy_old.load_state_dict(self.policy.state_dict())
+        self.value_old.load_state_dict(self.value.state_dict())
+        self.cnn_target.load_state_dict(self.cnn.state_dict())
+        self.projector_target.load_state_dict(self.projector.state_dict())
+
         if self.is_training_mode:
             self.policy.train()
             self.value.train()
+            self.cnn.train()
+            self.projector.train()
             print('Model is training...')
 
         else:
             self.policy.eval()
             self.value.eval()
+            self.cnn.eval()
+            self.projector.eval()
             print('Model is evaluating...')
