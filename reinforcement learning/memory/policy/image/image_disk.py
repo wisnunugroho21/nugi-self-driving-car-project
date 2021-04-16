@@ -47,8 +47,8 @@ class ImagePolicyMemory(PolicyMemory):
         states      = self.trans(states)
         next_states = self.trans(next_states)
 
-        return torch.FloatTensor(states), torch.FloatTensor(self.actions[idx]), torch.FloatTensor([self.rewards[idx]]), \
-            torch.FloatTensor([self.dones[idx]]), torch.FloatTensor(next_states)
+        return states, torch.FloatTensor(self.actions[idx]), torch.FloatTensor([self.rewards[idx]]), \
+            torch.FloatTensor([self.dones[idx]]), next_states
 
     def __save_tensor_as_image(self, tensor):
         image_name  = self.folder_img + ''.join(random.choices(string.ascii_uppercase + string.digits, k = 12))
