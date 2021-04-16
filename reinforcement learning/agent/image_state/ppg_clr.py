@@ -19,8 +19,8 @@ class AgentImageStatePPGClr(AgentPPG):
         self.cnn                = cnn
         self.projector          = projector
 
-        self.cnn_target         = copy.deepcopy(self.cnn)
-        self.projector_target   = copy.deepcopy(self.projector)
+        self.cnn_old            = copy.deepcopy(self.cnn)
+        self.projector_old      = copy.deepcopy(self.projector)
 
         self.aux_clrLoss        = aux_clr_loss
         self.aux_clr_memory     = aux_clr_memory
@@ -49,13 +49,14 @@ class AgentImageStatePPGClr(AgentPPG):
 
             action_datas, _     = self.policy(res, states)
             values              = self.value(res, states)
+            
+            res_old             = self.cnn_old(images, True)
+
+            old_action_datas, _ = self.policy_old(res_old, states, True)
+            old_values          = self.value_old(res_old, states, True)
 
             next_res            = self.cnn(next_images, True)
-
-            old_action_datas, _ = self.policy_old(res, states, True)
-            old_values          = self.value_old(res, states, True)
-
-            next_values         = self.value(next_res, next_states, True)            
+            next_values         = self.value(next_res, next_states, True)
 
             loss = self.ppoLoss.compute_loss(action_datas, old_action_datas, values, old_values, next_values, actions, rewards, dones)
         
@@ -85,8 +86,8 @@ class AgentImageStatePPGClr(AgentPPG):
             out1        = self.cnn(input_images)
             encoded1    = self.projector(out1)
 
-            out2        = self.cnn_target(target_images, True)
-            encoded2    = self.projector_target(out2, True)
+            out2        = self.cnn_old(target_images, True)
+            encoded2    = self.projector_old(out2, True)
 
             loss = self.aux_clrLoss.compute_loss(encoded1, encoded2)
 
@@ -97,6 +98,7 @@ class AgentImageStatePPGClr(AgentPPG):
     def _update_ppo(self):
         self.policy_old.load_state_dict(self.policy.state_dict())
         self.value_old.load_state_dict(self.value.state_dict())
+        self.cnn_old.load_state_dict(self.cnn.state_dict())
 
         dataloader = DataLoader(self.ppo_memory, self.batch_size, shuffle = False, num_workers = 8)
 
@@ -123,8 +125,8 @@ class AgentImageStatePPGClr(AgentPPG):
         self.aux_ppg_memory.clear_memory()
 
     def _update_aux_clr(self):
-        self.cnn_target.load_state_dict(self.cnn.state_dict())
-        self.projector_target.load_state_dict(self.projector.state_dict())
+        self.cnn_old.load_state_dict(self.cnn.state_dict())
+        self.projector_old.load_state_dict(self.projector.state_dict())
 
         dataloader  = DataLoader(self.aux_clr_memory, self.batch_size, shuffle = True, num_workers = 8)
 
@@ -192,8 +194,8 @@ class AgentImageStatePPGClr(AgentPPG):
 
         self.policy_old.load_state_dict(self.policy.state_dict())
         self.value_old.load_state_dict(self.value.state_dict())
-        self.cnn_target.load_state_dict(self.cnn.state_dict())
-        self.projector_target.load_state_dict(self.projector.state_dict())
+        self.cnn_old.load_state_dict(self.cnn.state_dict())
+        self.projector_old.load_state_dict(self.projector.state_dict())
 
         if self.is_training_mode:
             self.policy.train()
