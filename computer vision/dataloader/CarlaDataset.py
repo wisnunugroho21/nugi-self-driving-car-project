@@ -15,7 +15,7 @@ class CarlaDataset(Dataset):
 
         if self.input_trans is None:
             self.input_trans = transforms.Compose([
-                transforms.RandomResizedCrop(320),                           
+                # transforms.RandomResizedCrop(320),                           
                 transforms.RandomApply([transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)], p = 0.8),
                 transforms.RandomGrayscale(p = 0.2),
                 transforms.GaussianBlur(33),
@@ -34,13 +34,7 @@ class CarlaDataset(Dataset):
         input_img   = Image.open(img_path).convert("RGB")
         target_img  = Image.open(img_path).convert("RGB")
 
-        if self.input_trans is not None:
-            input_img   = self.input_trans(input_img)
-
-        if self.target_trans is not None:    
-            target_img  = self.target_trans(target_img)
-
-        return input_img.detach().numpy(), target_img.detach().numpy()
+        return self.input_trans(input_img), self.target_trans(target_img)
 
     def __len__(self):
         return len(self.imgs)
