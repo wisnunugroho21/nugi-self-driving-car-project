@@ -1,55 +1,65 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.utils.data as data
-import torch.optim as optim
+from torch.utils.data import DataLoader
 
-import torchvision.transforms as transforms
+from dataloader.CarlaDataset import CarlaDataset
+from loss.simclr import SimCLR
+from model.main.cnn_model import CnnModel
+from model.main.projection_model import ProjectionModel
 
-from dataloader.PennFudanPedDataset import PennFudanPedDataset
-from model.deeplabv4 import Deeplabv4
+soft_tau = 0.99
+PATH    = '.'
+device  = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-device      = torch.device('cuda:0')
-PATH        = 'weights/deeplabv4_net.pth'
+trainset            = CarlaDataset(root = 'dataset/carla')
+trainloader         = DataLoader(trainset, batch_size = 32, shuffle = True, num_workers = 8)
 
-transform1  = transforms.Compose([
-    transforms.Resize((256, 256))
-])
-transform2  = transforms.Compose([
-    transforms.Resize((256, 256))
-])
+cnn                 = CnnModel().float().to(device)
+cnn_target          = CnnModel().float().to(device)
 
-dataset     = PennFudanPedDataset('dataset/PennFudanPed', transform1, transform2)
-trainloader = data.DataLoader(dataset, batch_size = 4, shuffle = True, num_workers = 1)
+projector           = ProjectionModel().float().to(device)
+projector_target    = ProjectionModel().float().to(device)
 
-net         = Deeplabv4(num_classes = 3).to(device)
-net.train()
+clroptimizer        = torch.optim.Adam(list(cnn.parameters()) + list(projector.parameters()), lr = 0.001)
+clrscaler           = torch.cuda.amp.GradScaler()
+clrloss             = SimCLR(True)
 
-criterion   = nn.CrossEntropyLoss()
-optimizer   = optim.Adam(net.parameters(), lr = 0.001)
-scaler      = torch.cuda.amp.GradScaler()
+cnn_target.load_state_dict(cnn.state_dict())
+projector_target.load_state_dict(projector.state_dict())
 
-for epoch in range(40):
+for epoch in range(500):
     running_loss = 0.0
-    for i, data in enumerate(trainloader, 0):
-        inputs, labels = data
-        inputs = inputs.to(device)
-        labels = labels.to(device)
+    running_n = 0
 
-        optimizer.zero_grad()
+    for input, target in trainloader:
+        input, target   = input.to(device), target.to(device)
+
+        clroptimizer.zero_grad()
 
         with torch.cuda.amp.autocast():
-            outputs = net(inputs)
-            loss    = criterion(outputs, labels)
+            out1        = cnn(input)
+            encoded1    = projector(out1)
 
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
+            out2        = cnn_target(target, True)
+            encoded2    = projector_target(out2, True)
 
-        running_loss += loss.item()
-        if i % 10 == 9:
-            print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 10))
-            running_loss = 0.0
+            loss = clrloss.compute_loss(encoded1, encoded2)
 
-print('Finished Training')
-torch.save(net.state_dict(), PATH)
+            running_loss += loss
+            running_n += 1
+
+        clrscaler.scale(loss).backward()
+        clrscaler.step(clroptimizer)
+        clrscaler.update()
+
+    print('loop clr -> {} loss -> {}'.format(epoch, running_loss / running_n))
+    running_loss = 0.0
+    running_n = 0
+
+    for target_param, param in zip(cnn_target.parameters(), cnn.parameters()):
+        target_param.data.copy_(target_param.data * soft_tau  + param.data  * (1.0 - soft_tau))
+
+    for target_param, param in zip(projector_target.parameters(), projector.parameters()):
+        target_param.data.copy_(target_param.data * soft_tau  + param.data  * (1.0 - soft_tau))
+
+print('Finished Pre-Training')
+torch.save(cnn.state_dict(), PATH + '/cnn.pth')
