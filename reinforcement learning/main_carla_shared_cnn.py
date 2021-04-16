@@ -16,7 +16,7 @@ from loss.other.joint_aux import JointAux
 from loss.ppo.truly_ppo import TrulyPPO
 from policy_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
 from model.ppg.CarlaSharedCnn.cnn_model import CnnModel
-from model.ppg.CarlaSharedCnn.policy_model import PolicyModel
+from model.ppg.CarlaSharedCnn.policy_std_model import PolicyModel
 from model.ppg.CarlaSharedCnn.value_model import ValueModel
 from model.ppg.CarlaSharedCnn.projection_model import ProjectionModel
 from memory.policy.image_state.standard import ImageStatePolicyMemory
@@ -40,10 +40,10 @@ n_update                = 256 # How many episode before you update the Policy
 n_aux_update            = 2
 n_saved                 = n_aux_update
 
-policy_kl_range         = 0.05
+policy_kl_range         = 0.03
 policy_params           = 5
 value_clip              = 20.0
-entropy_coef            = 0.0
+entropy_coef            = 1.0
 vf_loss_coef            = 1.0
 batch_size              = 32
 ppo_epochs              = 5
