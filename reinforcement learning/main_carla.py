@@ -16,16 +16,16 @@ from loss.other.joint_aux import JointAux
 from loss.ppo.truly_ppo import TrulyPPO
 from policy_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
 from model.ppg.CarlaSharedCnn.cnn_model import CnnModel
-from model.ppg.CarlaSharedCnn.policy_model import PolicyModel
+from model.ppg.CarlaSharedCnn.policy_std_model import PolicyModel
 from model.ppg.CarlaSharedCnn.value_model import ValueModel
 from memory.policy.image_state.standard import ImageStatePolicyMemory
-from memory.aux_ppg.image_state.standard import ImageStateaux_ppgMemory
+from memory.aux_ppg.image_state.standard import auxPpgImageStateMemory
 
 from helpers.pytorch_utils import set_device
 
 ############## Hyperparameters ##############
 
-load_weights            = True # If you want to load the agent, set this to True
+load_weights            = False # If you want to load the agent, set this to True
 save_weights            = True # If you want to save the agent, set this to True
 is_training_mode        = True # If you want to train the agent, set this to True. But set this otherwise if you only want to test it
 use_gpu                 = True
@@ -42,7 +42,7 @@ n_saved                 = n_aux_update
 policy_kl_range         = 0.03
 policy_params           = 5
 value_clip              = 10.0
-entropy_coef            = 0.0
+entropy_coef            = 1.0
 vf_loss_coef            = 1.0
 batch_size              = 32
 PPO_epochs              = 10
@@ -68,7 +68,7 @@ Policy_loss         = TrulyPPO
 Aux_loss            = JointAux
 Wrapper             = CarlaEnv
 Policy_Memory       = ImageStatePolicyMemory
-Aux_Memory          = ImageStateaux_ppgMemory
+Aux_Memory          = auxPpgImageStateMemory
 Advantage_Function  = GeneralizedAdvantageEstimation
 Agent               = AgentImageStatePPG
 
@@ -106,7 +106,7 @@ cnn                 = Cnn_Model().float().to(set_device(use_gpu))
 policy              = Policy_Model(state_dim, action_dim, use_gpu).float().to(set_device(use_gpu))
 value               = Value_Model(state_dim).float().to(set_device(use_gpu))
 ppo_optimizer       = Adam(list(policy.parameters()) + list(value.parameters()) + list(cnn.parameters()), lr = learning_rate)        
-aux_ppg_optimizer   = Adam(list(policy.parameters()) + list(cnn.parameters()), lr = learning_rate)
+aux_ppg_optimizer   = Adam(list(policy.parameters()), lr = learning_rate)
 
 agent = Agent( cnn, policy, value, state_dim, action_dim, policy_dist, ppo_loss, aux_ppg_loss, ppo_memory, aux_ppg_memory, 
             ppo_optimizer, aux_ppg_optimizer, PPO_epochs, Aux_epochs, n_aux_update, is_training_mode, policy_kl_range, 

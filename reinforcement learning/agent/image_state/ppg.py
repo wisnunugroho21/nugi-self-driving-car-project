@@ -16,7 +16,8 @@ class AgentImageStatePPG(AgentPPG):
             ppo_optimizer, aux_ppg_optimizer, PPO_epochs, Aux_epochs, n_aux_update, is_training_mode, policy_kl_range, 
             policy_params, value_clip, entropy_coef, vf_loss_coef, batch_size,  folder, use_gpu)
 
-        self.cnn = cnn
+        self.cnn        = cnn
+        self.cnn_old    = copy.deepcopy(self.cnn)
 
         self.trans  = transforms.Compose([
             transforms.ToTensor(),
@@ -30,9 +31,11 @@ class AgentImageStatePPG(AgentPPG):
 
             action_datas, _     = self.policy(res, states)
             values              = self.value(res, states)
+            
+            res_old             = self.cnn_old(images, True)
 
-            old_action_datas, _ = self.policy_old(res, states, True)
-            old_values          = self.value_old(res, states, True)
+            old_action_datas, _ = self.policy_old(res_old, states, True)
+            old_values          = self.value_old(res_old, states, True)
 
             next_res            = self.cnn(next_images, True)
             next_values         = self.value(next_res, next_states, True)
@@ -46,12 +49,12 @@ class AgentImageStatePPG(AgentPPG):
     def _training_aux_ppg(self, images, states):
         self.aux_ppg_optimizer.zero_grad()        
         with torch.cuda.amp.autocast():
-            res                     = self.cnn(images)
-            
-            action_datas, values    = self.policy(res, states)
+            res                     = self.cnn(images, True)
 
             returns                 = self.value(res, states, True)
             old_action_datas, _     = self.policy_old(res, states, True)
+            
+            action_datas, values    = self.policy(res, states)            
 
             loss = self.auxLoss.compute_loss(action_datas, old_action_datas, values, returns)
 
@@ -62,6 +65,7 @@ class AgentImageStatePPG(AgentPPG):
     def _update_ppo(self):
         self.policy_old.load_state_dict(self.policy.state_dict())
         self.value_old.load_state_dict(self.value.state_dict())
+        self.cnn_old.load_state_dict(self.cnn.state_dict())
 
         dataloader = DataLoader(self.ppo_memory, self.batch_size, shuffle = False, num_workers = 8)
 
@@ -125,9 +129,6 @@ class AgentImageStatePPG(AgentPPG):
         self.aux_ppg_optimizer.load_state_dict(model_checkpoint['aux_ppg_optimizer_state_dict'])   
         self.ppo_scaler.load_state_dict(model_checkpoint['ppo_scaler_state_dict'])        
         self.aux_ppg_scaler.load_state_dict(model_checkpoint['aux_ppg_scaler_state_dict'])  
-
-        self.policy_old.load_state_dict(self.policy.state_dict())
-        self.value_old.load_state_dict(self.value.state_dict())
 
         if self.is_training_mode:
             self.policy.train()
