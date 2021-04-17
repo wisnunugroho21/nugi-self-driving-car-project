@@ -46,11 +46,15 @@ class AgentImageStatePPGClr(AgentPPG):
         self.soft_tau = 0.95
 
         if self.is_training_mode:
-            self.cnn.train()
-            self.projector.train()
+            self.cnn_policy.train()
+            self.cnn_value.train()
+            self.projector_policy.train()            
+            self.projector_value.train()
         else:
-            self.cnn.eval()
-            self.projector.eval()
+            self.cnn_policy.eval()
+            self.cnn_value.eval()
+            self.projector_policy.eval()            
+            self.projector_value.eval()
 
     def _training_ppo(self, images, states, actions, rewards, dones, next_images, next_states):
         self.ppo_optimizer.zero_grad()
@@ -184,7 +188,7 @@ class AgentImageStatePPGClr(AgentPPG):
     def act(self, image, state):
         image, state        = self.trans(image).unsqueeze(0).to(self.device), torch.FloatTensor(state).unsqueeze(0).to(self.device)
         
-        res                 = self.cnn(image)
+        res                 = self.cnn_policy(image)
         action_datas, _     = self.policy(res, state)
         
         if self.is_training_mode:
@@ -198,14 +202,18 @@ class AgentImageStatePPGClr(AgentPPG):
         torch.save({
             'policy_state_dict': self.policy.state_dict(),
             'value_state_dict': self.value.state_dict(),
-            'cnn_state_dict': self.cnn.state_dict(),
-            'projector_state_dict': self.projector.state_dict(),
+            'cnn_policy_state_dict': self.cnn_policy.state_dict(),
+            'projector_policy_state_dict': self.projector_policy.state_dict(),
+            'cnn_value_state_dict': self.cnn_value.state_dict(),
+            'projector_value_state_dict': self.projector_value.state_dict(),
             'ppo_optimizer_state_dict': self.ppo_optimizer.state_dict(),
             'aux_ppg_optimizer_state_dict': self.aux_ppg_optimizer.state_dict(),
-            'aux_clr_optimizer_state_dict': self.aux_clr_optimizer.state_dict(),
+            'aux_policy_clr_optim_state_dict': self.aux_policy_clr_optim.state_dict(),
+            'aux_value_clr_optim_state_dict': self.aux_value_clr_optim.state_dict(),
             'ppo_scaler_state_dict': self.ppo_scaler.state_dict(),
             'aux_ppg_scaler_state_dict': self.aux_ppg_scaler.state_dict(),
-            'aux_clr_scaler_state_dict': self.aux_clr_scaler.state_dict(),
+            'aux_policy_clr_scaler_state_dict': self.aux_policy_clr_scaler.state_dict(),
+            'aux_value_clr_scaler_state_dict': self.aux_value_clr_scaler.state_dict(),
         }, self.folder + '/ppg.tar')
         
     def load_weights(self, device = None):
@@ -215,19 +223,18 @@ class AgentImageStatePPGClr(AgentPPG):
         model_checkpoint = torch.load(self.folder + '/ppg.tar', map_location = device)
         self.policy.load_state_dict(model_checkpoint['policy_state_dict'])        
         self.value.load_state_dict(model_checkpoint['value_state_dict'])
-        self.cnn.load_state_dict(model_checkpoint['cnn_state_dict'])
-        self.projector.load_state_dict(model_checkpoint['projector_state_dict'])
+        self.cnn_policy.load_state_dict(model_checkpoint['cnn_policy_state_dict'])
+        self.projector_policy.load_state_dict(model_checkpoint['projector_policy_state_dict'])
+        self.cnn_value.load_state_dict(model_checkpoint['cnn_value_state_dict'])
+        self.projector_value.load_state_dict(model_checkpoint['projector_value_state_dict'])
         self.ppo_optimizer.load_state_dict(model_checkpoint['ppo_optimizer_state_dict'])        
         self.aux_ppg_optimizer.load_state_dict(model_checkpoint['aux_ppg_optimizer_state_dict'])   
-        self.aux_clr_optimizer.load_state_dict(model_checkpoint['aux_clr_optimizer_state_dict'])
+        self.aux_policy_clr_optim.load_state_dict(model_checkpoint['aux_policy_clr_optim_state_dict'])
+        self.aux_value_clr_optim.load_state_dict(model_checkpoint['aux_value_clr_optim_state_dict'])
         self.ppo_scaler.load_state_dict(model_checkpoint['ppo_scaler_state_dict'])        
         self.aux_ppg_scaler.load_state_dict(model_checkpoint['aux_ppg_scaler_state_dict'])  
-        self.aux_clr_scaler.load_state_dict(model_checkpoint['aux_clr_scaler_state_dict'])
-
-        self.policy_old.load_state_dict(self.policy.state_dict())
-        self.value_old.load_state_dict(self.value.state_dict())
-        self.cnn_old.load_state_dict(self.cnn.state_dict())
-        self.projector_old.load_state_dict(self.projector.state_dict())
+        self.aux_policy_clr_scaler.load_state_dict(model_checkpoint['aux_policy_clr_scaler_state_dict'])
+        self.aux_value_clr_scaler.load_state_dict(model_checkpoint['aux_value_clr_scaler_state_dict'])
 
         if self.is_training_mode:
             self.policy.train()

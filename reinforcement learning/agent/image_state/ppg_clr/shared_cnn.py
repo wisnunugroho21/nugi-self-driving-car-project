@@ -192,11 +192,6 @@ class AgentImageStatePPGClr(AgentPPG):
         self.aux_ppg_scaler.load_state_dict(model_checkpoint['aux_ppg_scaler_state_dict'])  
         self.aux_clr_scaler.load_state_dict(model_checkpoint['aux_clr_scaler_state_dict'])
 
-        self.policy_old.load_state_dict(self.policy.state_dict())
-        self.value_old.load_state_dict(self.value.state_dict())
-        self.cnn_old.load_state_dict(self.cnn.state_dict())
-        self.projector_old.load_state_dict(self.projector.state_dict())
-
         if self.is_training_mode:
             self.policy.train()
             self.value.train()
