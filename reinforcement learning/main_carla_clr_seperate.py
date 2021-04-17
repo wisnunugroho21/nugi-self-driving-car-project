@@ -9,7 +9,7 @@ from torch.optim.adam import Adam
 
 from eps_runner.iteration.carla import CarlaRunner
 from train_executor.executor import Executor
-from agent.image_state.ppg_clr.shared_cnn import AgentImageStatePPGClr
+from agent.image_state.ppg_clr.seperate_cnn import AgentImageStatePPGClr
 from distribution.basic_continous import BasicContinous
 from environment.custom.carla.carla_rgb import CarlaEnv
 from loss.other.joint_aux import JointAux
@@ -111,16 +111,23 @@ aux_ppg_loss        = Aux_loss(policy_dist)
 ppo_loss            = Policy_loss(policy_dist, advantage_function, policy_kl_range, policy_params, value_clip, vf_loss_coef, entropy_coef, gamma)
 aux_clr_loss        = Clr_loss(use_gpu)
 
-cnn                 = Cnn_Model().float().to(set_device(use_gpu))
 policy              = Policy_Model(state_dim, action_dim, use_gpu).float().to(set_device(use_gpu))
 value               = Value_Model(state_dim).float().to(set_device(use_gpu))
-projector           = Projection_Model().float().to(set_device(use_gpu))
-ppo_optimizer       = Adam(list(policy.parameters()) + list(value.parameters()) + list(cnn.parameters()), lr = learning_rate)        
-aux_ppg_optimizer   = Adam(list(policy.parameters()), lr = learning_rate)
-aux_clr_optimizer   = Adam(list(cnn.parameters()) + list(projector.parameters()), lr = learning_rate)
 
-agent = Agent(projector, cnn, policy, value, state_dim, action_dim, policy_dist, ppo_loss, aux_ppg_loss, aux_clr_loss, ppo_memory, aux_ppg_memory, aux_clr_memory,
-            ppo_optimizer, aux_ppg_optimizer, aux_clr_optimizer, ppo_epochs, aux_ppg_epochs, aux_clr_epochs, n_aux_update, is_training_mode, policy_kl_range, 
+cnn_policy          = Cnn_Model().float().to(set_device(use_gpu))
+projector_policy    = Projection_Model().float().to(set_device(use_gpu))
+
+cnn_value           = Cnn_Model().float().to(set_device(use_gpu))
+projector_value     = Projection_Model().float().to(set_device(use_gpu))
+
+ppo_optimizer       = Adam(list(policy.parameters()) + list(value.parameters()) + list(cnn_policy.parameters()) + list(cnn_value.parameters()), lr = learning_rate)        
+aux_ppg_optimizer   = Adam(list(policy.parameters()) + list(cnn_policy.parameters()), lr = learning_rate)
+
+aux_policy_clr_optim    = Adam(list(cnn_policy.parameters()) + list(projector_policy.parameters()), lr = learning_rate)
+aux_value_clr_optim     = Adam(list(cnn_value.parameters()) + list(projector_value.parameters()), lr = learning_rate)
+
+agent = Agent(projector_policy, projector_value, cnn_policy, cnn_value, policy, value, state_dim, action_dim, policy_dist, ppo_loss, aux_ppg_loss, aux_clr_loss, ppo_memory, aux_ppg_memory, aux_clr_memory,
+            ppo_optimizer, aux_ppg_optimizer, aux_policy_clr_optim, aux_value_clr_optim, ppo_epochs, aux_ppg_epochs, aux_clr_epochs, n_aux_update, is_training_mode, policy_kl_range, 
             policy_params, value_clip, entropy_coef, vf_loss_coef, batch_size,  folder, use_gpu)
 
 runner      = Runner(agent, environment, runner_memory, is_training_mode, render, n_update, environment.is_discrete(), max_action, SummaryWriter(), n_plot_batch) # [Runner.remote(i_env, render, training_mode, n_update, Wrapper.is_discrete(), agent, max_action, None, n_plot_batch) for i_env in env]
