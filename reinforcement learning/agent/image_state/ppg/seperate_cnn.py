@@ -7,8 +7,8 @@ from torch.utils.data import DataLoader
 from helpers.pytorch_utils import set_device, to_numpy, to_tensor
 from agent.standard.ppg import AgentPPG
 
-class AgentImageStatePPGClr(AgentPPG):
-    def __init__(self, projector_policy, projector_value, cnn_policy, cnn_value, policy, value, state_dim, action_dim, distribution, ppo_loss, aux_ppg_loss, ppo_memory, aux_ppg_memory,
+class AgentSeperateImageStatePPG(AgentPPG):
+    def __init__(self, cnn_policy, cnn_value, policy, value, state_dim, action_dim, distribution, ppo_loss, aux_ppg_loss, ppo_memory, aux_ppg_memory,
             ppo_optimizer, aux_ppg_optimizer, PPO_epochs = 10, aux_ppg_epochs = 10, n_aux_update = 10, is_training_mode = True, policy_kl_range = 0.03, 
             policy_params = 5, value_clip = 1.0, entropy_coef = 0.0, vf_loss_coef = 1.0, batch_size = 32,  folder = 'model', use_gpu = True):
 
@@ -17,16 +17,10 @@ class AgentImageStatePPGClr(AgentPPG):
             policy_params, value_clip, entropy_coef, vf_loss_coef, batch_size,  folder, use_gpu)
 
         self.cnn_policy             = cnn_policy
-        self.projector_policy       = projector_policy
-
         self.cnn_value              = cnn_value
-        self.projector_value        = projector_value
 
         self.cnn_policy_old         = copy.deepcopy(self.cnn_policy)
-        self.projector_policy_old   = copy.deepcopy(self.projector_policy)        
-
         self.cnn_value_old          = copy.deepcopy(self.cnn_value)
-        self.projector_value_old    = copy.deepcopy(self.projector_value)
 
         self.trans  = transforms.Compose([
             transforms.ToTensor(),
@@ -38,13 +32,9 @@ class AgentImageStatePPGClr(AgentPPG):
         if self.is_training_mode:
             self.cnn_policy.train()
             self.cnn_value.train()
-            self.projector_policy.train()            
-            self.projector_value.train()
         else:
             self.cnn_policy.eval()
             self.cnn_value.eval()
-            self.projector_policy.eval()            
-            self.projector_value.eval()
 
     def _training_ppo(self, images, states, actions, rewards, dones, next_images, next_states):
         self.ppo_optimizer.zero_grad()
@@ -147,9 +137,7 @@ class AgentImageStatePPGClr(AgentPPG):
             'policy_state_dict': self.policy.state_dict(),
             'value_state_dict': self.value.state_dict(),
             'cnn_policy_state_dict': self.cnn_policy.state_dict(),
-            'projector_policy_state_dict': self.projector_policy.state_dict(),
             'cnn_value_state_dict': self.cnn_value.state_dict(),
-            'projector_value_state_dict': self.projector_value.state_dict(),
             'ppo_optimizer_state_dict': self.ppo_optimizer.state_dict(),
             'aux_ppg_optimizer_state_dict': self.aux_ppg_optimizer.state_dict(),
             'ppo_scaler_state_dict': self.ppo_scaler.state_dict(),
@@ -164,9 +152,7 @@ class AgentImageStatePPGClr(AgentPPG):
         self.policy.load_state_dict(model_checkpoint['policy_state_dict'])        
         self.value.load_state_dict(model_checkpoint['value_state_dict'])
         self.cnn_policy.load_state_dict(model_checkpoint['cnn_policy_state_dict'])
-        self.projector_policy.load_state_dict(model_checkpoint['projector_policy_state_dict'])
         self.cnn_value.load_state_dict(model_checkpoint['cnn_value_state_dict'])
-        self.projector_value.load_state_dict(model_checkpoint['projector_value_state_dict'])
         self.ppo_optimizer.load_state_dict(model_checkpoint['ppo_optimizer_state_dict'])        
         self.aux_ppg_optimizer.load_state_dict(model_checkpoint['aux_ppg_optimizer_state_dict'])
         self.ppo_scaler.load_state_dict(model_checkpoint['ppo_scaler_state_dict'])        
