@@ -43,8 +43,6 @@ class AgentImageStatePPGClr(AgentPPG):
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
         
-        self.soft_tau = 0.95
-
         if self.is_training_mode:
             self.cnn_policy.train()
             self.cnn_value.train()

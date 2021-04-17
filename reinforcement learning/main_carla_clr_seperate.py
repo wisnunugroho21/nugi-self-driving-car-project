@@ -55,7 +55,7 @@ action_std              = 1.0
 gamma                   = 0.95
 learning_rate           = 3e-4
 
-folder                  = 'weights/carla1'
+folder                  = 'weights/carla2'
 # env                     = gym.make('BipedalWalker-v3') # gym.make('BipedalWalker-v3') # gym.make('BipedalWalker-v3') for _ in range(2)] # CarlaEnv(im_height = 240, im_width = 240, im_preview = False, max_step = 512) # [gym.make(env_name) for _ in range(2)] # CarlaEnv(im_height = 240, im_width = 240, im_preview = False, seconds_per_episode = 3 * 60) # [gym.make(env_name) for _ in range(2)] # gym.make(env_name) # [gym.make(env_name) for _ in range(2)]
 
 state_dim           = None
@@ -101,27 +101,27 @@ if action_dim is None:
     action_dim = environment.get_action_dim()
 print('action_dim: ', action_dim)
 
-policy_dist         = Policy_Dist(use_gpu)
-advantage_function  = Advantage_Function(gamma)
-aux_ppg_memory      = Aux_Memory()
-ppo_memory          = Policy_Memory()
-runner_memory       = Policy_Memory()
-aux_clr_memory      = Clr_Memory()
-aux_ppg_loss        = Aux_loss(policy_dist)
-ppo_loss            = Policy_loss(policy_dist, advantage_function, policy_kl_range, policy_params, value_clip, vf_loss_coef, entropy_coef, gamma)
-aux_clr_loss        = Clr_loss(use_gpu)
+policy_dist             = Policy_Dist(use_gpu)
+advantage_function      = Advantage_Function(gamma)
+aux_ppg_memory          = Aux_Memory()
+ppo_memory              = Policy_Memory()
+runner_memory           = Policy_Memory()
+aux_clr_memory          = Clr_Memory()
+aux_ppg_loss            = Aux_loss(policy_dist)
+ppo_loss                = Policy_loss(policy_dist, advantage_function, policy_kl_range, policy_params, value_clip, vf_loss_coef, entropy_coef, gamma)
+aux_clr_loss            = Clr_loss(use_gpu)
 
-policy              = Policy_Model(state_dim, action_dim, use_gpu).float().to(set_device(use_gpu))
-value               = Value_Model(state_dim).float().to(set_device(use_gpu))
+policy                  = Policy_Model(state_dim, action_dim, use_gpu).float().to(set_device(use_gpu))
+value                   = Value_Model(state_dim).float().to(set_device(use_gpu))
 
-cnn_policy          = Cnn_Model().float().to(set_device(use_gpu))
-projector_policy    = Projection_Model().float().to(set_device(use_gpu))
+cnn_policy              = Cnn_Model().float().to(set_device(use_gpu))
+projector_policy        = Projection_Model().float().to(set_device(use_gpu))
 
-cnn_value           = Cnn_Model().float().to(set_device(use_gpu))
-projector_value     = Projection_Model().float().to(set_device(use_gpu))
+cnn_value               = Cnn_Model().float().to(set_device(use_gpu))
+projector_value         = Projection_Model().float().to(set_device(use_gpu))
 
-ppo_optimizer       = Adam(list(policy.parameters()) + list(value.parameters()) + list(cnn_policy.parameters()) + list(cnn_value.parameters()), lr = learning_rate)        
-aux_ppg_optimizer   = Adam(list(policy.parameters()) + list(cnn_policy.parameters()), lr = learning_rate)
+ppo_optimizer           = Adam(list(policy.parameters()) + list(value.parameters()) + list(cnn_policy.parameters()) + list(cnn_value.parameters()), lr = learning_rate)        
+aux_ppg_optimizer       = Adam(list(policy.parameters()) + list(cnn_policy.parameters()), lr = learning_rate)
 
 aux_policy_clr_optim    = Adam(list(cnn_policy.parameters()) + list(projector_policy.parameters()), lr = learning_rate)
 aux_value_clr_optim     = Adam(list(cnn_value.parameters()) + list(projector_value.parameters()), lr = learning_rate)

@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from helpers.pytorch_utils import set_device, to_numpy, to_tensor
 from agent.standard.ppg import AgentPPG
 
-class AgentSeperateImageStatePPG(AgentPPG):
+class AgentImageStatePPG(AgentPPG):
     def __init__(self, cnn_policy, cnn_value, policy, value, state_dim, action_dim, distribution, ppo_loss, aux_ppg_loss, ppo_memory, aux_ppg_memory,
             ppo_optimizer, aux_ppg_optimizer, PPO_epochs = 10, aux_ppg_epochs = 10, n_aux_update = 10, is_training_mode = True, policy_kl_range = 0.03, 
             policy_params = 5, value_clip = 1.0, entropy_coef = 0.0, vf_loss_coef = 1.0, batch_size = 32,  folder = 'model', use_gpu = True):
