@@ -99,13 +99,14 @@ class AgentImageStatePPGClr(AgentPPG):
     def _training_aux_clr(self, input_images, target_images):
         self.aux_policy_clr_optim.zero_grad()
         with torch.cuda.amp.autocast():
-            policy_out1        = self.cnn_policy(input_images)
-            policy_encoded1    = self.projector_policy(policy_out1)
+            res_anchor        = self.cnn_policy(input_images)
+            encoded_anchor    = self.projector_policy(res_anchor)
 
-            policy_out2        = self.cnn_policy_old(target_images, True)
-            policy_encoded2    = self.projector_policy_old(policy_out2, True)
+            res_target        = self.cnn_policy_old(target_images, True)
+            encoded_target    = self.projector_policy_old(res_target, True)
 
-            loss = self.aux_clrLoss.compute_loss(policy_encoded1, policy_encoded2)
+            encoded = self.projector_policy.compute_logits(encoded_anchor, encoded_target)
+            loss    = self.aux_clrLoss.compute_loss(encoded)
 
         self.aux_policy_clr_scaler.scale(loss).backward()
         self.aux_policy_clr_scaler.step(self.aux_policy_clr_optim)
@@ -113,13 +114,14 @@ class AgentImageStatePPGClr(AgentPPG):
 
         self.aux_value_clr_optim.zero_grad()
         with torch.cuda.amp.autocast():
-            value_out1        = self.cnn_value(input_images)
-            value_encoded1    = self.projector_value(value_out1)
+            res_anchor        = self.cnn_value(input_images)
+            encoded_anchor    = self.projector_value(res_anchor)
 
-            value_out2        = self.cnn_value_old(target_images, True)
-            value_encoded2    = self.projector_value_old(value_out2, True)
+            res_target        = self.cnn_value_old(target_images, True)
+            encoded_target    = self.projector_value_old(res_target, True)
 
-            loss = self.aux_clrLoss.compute_loss(value_encoded1, value_encoded2)
+            encoded = self.projector_value.compute_logits(encoded_anchor, encoded_target)
+            loss    = self.aux_clrLoss.compute_loss(encoded)
 
         self.aux_value_clr_scaler.scale(loss).backward()
         self.aux_value_clr_scaler.step(self.aux_value_clr_optim)
@@ -237,13 +239,15 @@ class AgentImageStatePPGClr(AgentPPG):
         if self.is_training_mode:
             self.policy.train()
             self.value.train()
-            self.cnn.train()
-            self.projector.train()
-            print('Model is training...')
+            self.cnn_policy.train()
+            self.cnn_value.train()
+            self.projector_policy.train()            
+            self.projector_value.train()
 
         else:
             self.policy.eval()
             self.value.eval()
-            self.cnn.eval()
-            self.projector.eval()
-            print('Model is evaluating...')
+            self.cnn_policy.eval()
+            self.cnn_value.eval()
+            self.projector_policy.eval()            
+            self.projector_value.eval()

@@ -160,12 +160,10 @@ class AgentPPG():
         if self.is_training_mode:
             self.policy.train()
             self.value.train()
-            print('Model is training...')
 
         else:
             self.policy.eval()
             self.value.eval()
-            print('Model is evaluating...')
 
     def get_weights(self):
         return self.policy.state_dict(), self.value.state_dict()

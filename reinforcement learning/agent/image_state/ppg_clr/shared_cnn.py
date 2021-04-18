@@ -83,13 +83,13 @@ class AgentImageStatePPGClr(AgentPPG):
     def _training_aux_clr(self, input_images, target_images):
         self.aux_clr_optimizer.zero_grad()
         with torch.cuda.amp.autocast():
-            out1        = self.cnn(input_images)
-            encoded1    = self.projector(out1)
+            res_anchor        = self.cnn(input_images)
+            encoded_anchor    = self.projector(res_anchor)
 
-            out2        = self.cnn_old(target_images, True)
-            encoded2    = self.projector_old(out2, True)
+            res_target        = self.cnn_old(target_images, True)
+            encoded_target    = self.projector_old(res_target, True)
 
-            loss = self.aux_clrLoss.compute_loss(encoded1, encoded2)
+            loss = self.aux_clrLoss.compute_loss(encoded_anchor, encoded_target)
 
         self.aux_clr_scaler.scale(loss).backward()
         self.aux_clr_scaler.step(self.aux_clr_optimizer)
@@ -197,11 +197,9 @@ class AgentImageStatePPGClr(AgentPPG):
             self.value.train()
             self.cnn.train()
             self.projector.train()
-            print('Model is training...')
 
         else:
             self.policy.eval()
             self.value.eval()
             self.cnn.eval()
             self.projector.eval()
-            print('Model is evaluating...')

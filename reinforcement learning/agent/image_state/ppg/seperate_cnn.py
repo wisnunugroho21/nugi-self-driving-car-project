@@ -159,12 +159,13 @@ class AgentImageStatePPG(AgentPPG):
         self.aux_ppg_scaler.load_state_dict(model_checkpoint['aux_ppg_scaler_state_dict'])
 
         if self.is_training_mode:
+            self.policy.train()
+            self.value.train()
             self.cnn_policy.train()
             self.cnn_value.train()
-            self.projector_policy.train()            
-            self.projector_value.train()
+
         else:
+            self.policy.eval()
+            self.value.eval()
             self.cnn_policy.eval()
             self.cnn_value.eval()
-            self.projector_policy.eval()            
-            self.projector_value.eval()

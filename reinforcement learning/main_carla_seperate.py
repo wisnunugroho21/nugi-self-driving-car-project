@@ -9,7 +9,7 @@ from torch.optim.adam import Adam
 
 from eps_runner.iteration.carla import CarlaRunner
 from train_executor.executor import Executor
-from agent.image_state.ppg.seperate_cnn import AgentSeperateImageStatePPG
+from agent.image_state.ppg.seperate_cnn import AgentImageStatePPG
 from distribution.basic_continous import BasicContinous
 from environment.custom.carla.carla_rgb import CarlaEnv
 from loss.other.joint_aux import JointAux
@@ -73,7 +73,7 @@ Wrapper             = CarlaEnv
 Policy_Memory       = ImageStatePolicyMemory
 Aux_Memory          = auxPpgImageStateMemory
 Advantage_Function  = GeneralizedAdvantageEstimation
-Agent               = AgentSeperateImageStatePPG
+Agent               = AgentImageStatePPG
 
 #####################################################################################################################################################
 

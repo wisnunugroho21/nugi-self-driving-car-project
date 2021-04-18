@@ -24,6 +24,11 @@ class AgentImageStatePPG(AgentPPG):
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
 
+        if self.is_training_mode:
+            self.cnn.train()
+        else:
+            self.cnn.eval()
+
     def _training_ppo(self, images, states, actions, rewards, dones, next_images, next_states):
         self.ppo_optimizer.zero_grad()
         with torch.cuda.amp.autocast():
@@ -133,9 +138,9 @@ class AgentImageStatePPG(AgentPPG):
         if self.is_training_mode:
             self.policy.train()
             self.value.train()
-            print('Model is training...')
+            self.cnn.train()
 
         else:
             self.policy.eval()
             self.value.eval()
-            print('Model is evaluating...')
+            self.cnn.eval()
