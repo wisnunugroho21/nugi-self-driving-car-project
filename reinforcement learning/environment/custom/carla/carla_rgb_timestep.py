@@ -57,7 +57,7 @@ class CarlaEnv():
 
         settings                        = self.world.get_settings()
         settings.synchronous_mode       = True
-        settings.fixed_delta_seconds    = 0.01666
+        settings.fixed_delta_seconds    = 0.0166
         self.world.apply_settings(settings)
 
         self.cam_queue  = queue.Queue()         
@@ -83,7 +83,7 @@ class CarlaEnv():
             cv2.imshow('', i)
             cv2.waitKey(1)
 
-        i = Image.fromarray(i)
+        i = Image.fromarray(i, 'RGB')
         return i
 
     def _process_collision(self, event):
@@ -94,7 +94,7 @@ class CarlaEnv():
 
     def _tick_env(self):
         self.world.tick()
-        # time.sleep(0.01666)
+        # time.sleep(0.0166)
 
     def is_discrete(self):
         return False
@@ -119,7 +119,7 @@ class CarlaEnv():
         self.cam_sensor = self.world.spawn_actor(self.rgb_cam, carla.Transform(carla.Location(x = 1.6, z = 1.7)), attach_to = self.vehicle)
         self.cam_sensor.listen(self.cam_queue.put)
 
-        for _ in range(4):
+        for _ in range(2):
             self._tick_env()
         
         self.col_sensor = self.world.spawn_actor(self.col_detector, carla.Transform(), attach_to = self.vehicle)
@@ -135,22 +135,32 @@ class CarlaEnv():
 
         self.cur_step = 0
 
-        image = self._process_image(self.cam_queue.get())
+        images = []
+        images.append(self._process_image(self.cam_queue.get()))
+
+        for _ in range(2):
+            image_data  = np.zeros((self.im_height, self.im_width, 3), dtype = np.uint8)
+            images.append(Image.fromarray(image_data, 'RGB'))
+
         del self.collision_hist[:]
         del self.crossed_line_hist[:] 
         
-        return image, np.array([0, 0])
+        return images, np.array([0, 0])
 
     def step(self, action):
         prev_loc    = self.vehicle.get_location()
+        images      = []
 
-        steer       = -1 if action[0] < -1 else 1 if action[0] > 1 else action[0]
-        throttle    = 0 if action[1] < 0 else 1 if action[1] > 1 else action[1]
-        brake       = 0 if action[2] < 0 else 1 if action[2] > 1 else action[2]
-        self.vehicle.apply_control(carla.VehicleControl(steer = float(steer), throttle = float(throttle), brake = float(brake)))
+        for _ in range(3):
+            steer       = -1 if action[0] < -1 else 1 if action[0] > 1 else action[0]
+            throttle    = 0 if action[1] < 0 else 1 if action[1] > 1 else action[1]
+            brake       = 0 if action[2] < 0 else 1 if action[2] > 1 else action[2]
+            self.vehicle.apply_control(carla.VehicleControl(steer = float(steer), throttle = float(throttle), brake = float(brake)))
 
-        self._tick_env()
-        self.cur_step   += 1
+            self._tick_env()
+            self.cur_step   += 1
+
+            images.append(self._process_image(self.cam_queue.get()))
 
         v       = self.vehicle.get_velocity()
         kmh     = math.sqrt(v.x ** 2 + v.y ** 2)
@@ -161,18 +171,17 @@ class CarlaEnv():
         dif_loc = math.sqrt(dif_x ** 2 + dif_y ** 2)
 
         done    = False
-        reward  = dif_loc * 10 - 0.1
-        image   = self._process_image(self.cam_queue.get())
+        reward  = dif_loc * 10 - 0.1       
 
         if self.cur_step >= self.max_step:
             done    = True
 
         elif len(self.crossed_line_hist) > 0 or len(self.collision_hist) > 0:
             done    = True
-            reward  = -1 * kmh
+            reward  = -0.1 * kmh
 
         elif loc.x >= -100 or loc.y >= -10:
             done    = True
             reward  = 100        
         
-        return image, np.array([kmh, float(steer)]), reward, done, None
+        return images, np.array([kmh, float(steer)]), reward, done, None

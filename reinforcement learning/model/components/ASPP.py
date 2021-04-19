@@ -1,3 +1,5 @@
+from model.components.SeperableConv2d import DepthwiseSeparableConv2d
+
 import torch
 import torch.nn as nn
 
@@ -6,8 +8,7 @@ class SpatialAtrousExtractor(nn.Module):
         super(SpatialAtrousExtractor, self).__init__()        
 
         self.spatial_atrous = nn.Sequential(
-            nn.Conv2d(dim_in, dim_out, kernel_size = 3, stride = 1, padding = rate, dilation = rate),            
-            nn.ReLU()
+            DepthwiseSeparableConv2d(dim_in, dim_out, kernel_size = 3, stride = 1, padding = rate, dilation = rate)
 		)
 
     def forward(self, x):
@@ -23,7 +24,7 @@ class AtrousSpatialPyramidConv2d(nn.Module):
         self.extractor3 = SpatialAtrousExtractor(dim_in, 1, 8)
 
         self.out = nn.Sequential(
-            nn.Conv2d(3, dim_out, kernel_size = 1)
+            DepthwiseSeparableConv2d(3, dim_out, kernel_size = 1)
         )
 
     def forward(self, x):

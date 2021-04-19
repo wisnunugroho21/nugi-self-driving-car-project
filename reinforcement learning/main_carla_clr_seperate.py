@@ -14,12 +14,12 @@ from distribution.basic_continous import BasicContinous
 from environment.custom.carla.carla_rgb import CarlaEnv
 from loss.other.joint_aux import JointAux
 from loss.ppo.truly_ppo import TrulyPPO
-from loss.clr.cross_entropy_indexes import CrossEntropyIndexes
+from loss.clr.simclr import SimCLR
 from policy_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
-from model.ppg.CarlaSharedCnn.cnn_model import CnnModel
-from model.ppg.CarlaSharedCnn.policy_std_model import PolicyModel
-from model.ppg.CarlaSharedCnn.value_model import ValueModel
-from model.ppg.CarlaSharedCnn.projection_model import ProjectionModel
+from model.ppg.carla.cnn_model import CnnModel
+from model.ppg.carla.policy_model import PolicyModel
+from model.ppg.carla.value_model import ValueModel
+from model.ppg.carla.projection_model import ProjectionModel
 from memory.policy.image_state.standard import ImageStatePolicyMemory
 from memory.aux_ppg.image_state.standard import auxPpgImageStateMemory
 from memory.aux_clr.standard import auxClrMemory
@@ -71,7 +71,7 @@ Runner              = CarlaRunner
 Executor            = Executor
 Policy_loss         = TrulyPPO
 Aux_loss            = JointAux
-Clr_loss            = CrossEntropyIndexes
+Clr_loss            = SimCLR
 Wrapper             = CarlaEnv
 Policy_Memory       = ImageStatePolicyMemory
 Aux_Memory          = auxPpgImageStateMemory
