@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 import torchvision.transforms as transforms
 from memory.aux_ppg.standard import auxPpgMemory
 
@@ -51,4 +51,4 @@ class auxPpgImageStateMemory(auxPpgMemory):
         del self.images[:]
 
     def transform(self, images):
-        return [self.trans(image) for image in images]
+        return torch.stack([self.trans(image) for image in images])

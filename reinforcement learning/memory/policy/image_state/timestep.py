@@ -1,3 +1,4 @@
+import torch
 import torchvision.transforms as transforms
 from memory.policy.image_state.standard import ImageStatePolicyMemory
 
@@ -57,4 +58,4 @@ class TimestepISPMemory(ImageStatePolicyMemory):
         del self.next_images[:]
 
     def transform(self, images):
-        return [self.trans(image) for image in images]
+        return torch.stack([self.trans(image) for image in images])

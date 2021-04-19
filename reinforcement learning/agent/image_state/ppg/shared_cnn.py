@@ -19,11 +19,6 @@ class AgentImageStatePPG(AgentPPG):
         self.cnn        = cnn
         self.cnn_old    = copy.deepcopy(self.cnn)
 
-        self.trans  = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ])
-
         if self.is_training_mode:
             self.cnn.train()
         else:
@@ -99,7 +94,7 @@ class AgentImageStatePPG(AgentPPG):
         self.ppo_memory.save_all(images, states, actions, rewards, dones, next_images, next_states)
 
     def act(self, image, state):
-        image, state        = self.trans(image).unsqueeze(0).to(self.device), torch.FloatTensor(state).unsqueeze(0).to(self.device)
+        image, state        = self.ppo_memory.transform(image).unsqueeze(0).to(self.device), torch.FloatTensor(state).unsqueeze(0).to(self.device)
         
         res                 = self.cnn(image)
         action_datas, _     = self.policy(res, state)

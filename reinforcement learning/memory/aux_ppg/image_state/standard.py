@@ -49,3 +49,6 @@ class auxPpgImageStateMemory(auxPpgMemory):
     def clear_memory(self):
         super().clear_memory()
         del self.images[:]
+
+    def transform(self, image):
+        return self.trans(image)

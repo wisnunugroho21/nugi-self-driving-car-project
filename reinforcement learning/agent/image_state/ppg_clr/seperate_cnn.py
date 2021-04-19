@@ -38,11 +38,6 @@ class AgentImageStatePPGClr(AgentPPG):
         self.aux_clr_memory         = aux_clr_memory
         self.aux_clr_epochs         = aux_clr_epochs
 
-        self.trans  = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ])
-        
         if self.is_training_mode:
             self.cnn_policy.train()
             self.cnn_value.train()
@@ -186,7 +181,7 @@ class AgentImageStatePPGClr(AgentPPG):
         self.ppo_memory.save_all(images, states, actions, rewards, dones, next_images, next_states)
 
     def act(self, image, state):
-        image, state        = self.ppo_memory.transform(image), torch.FloatTensor(state).unsqueeze(0).to(self.device)
+        image, state        = self.ppo_memory.transform(image).unsqueeze(0).to(self.device), torch.FloatTensor(state).unsqueeze(0).to(self.device)
         
         res                 = self.cnn_policy(image)
         action_datas, _     = self.policy(res, state)

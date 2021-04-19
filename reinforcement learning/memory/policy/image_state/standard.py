@@ -56,3 +56,6 @@ class ImageStatePolicyMemory(PolicyMemory):
         super().clear_memory()
         del self.images[:]
         del self.next_images[:]
+
+    def transform(self, image):
+        return self.trans(image)
