@@ -60,7 +60,7 @@ class CarlaEnv():
         settings.fixed_delta_seconds    = 0.0166
         self.world.apply_settings(settings)
 
-        self.cam_queue  = queue.Queue()         
+        self.cam_queue  = queue.Queue()
         
     def __del__(self):
         for actor in self.actor_list:
