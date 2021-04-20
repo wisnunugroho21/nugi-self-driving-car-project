@@ -16,13 +16,13 @@ from loss.other.joint_aux import JointAux
 from loss.ppo.truly_ppo import TrulyPPO
 from loss.clr.distances import DistancesClr
 from policy_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
-from model.ppg.CarlaSharedCnn.cnn_model import CnnModel
-from model.ppg.CarlaSharedCnn.policy_std_model import PolicyModel
-from model.ppg.CarlaSharedCnn.value_model import ValueModel
-from model.ppg.CarlaSharedCnn.projection_model import ProjectionModel
+from model.ppg.carla.cnn_model import CnnModel
+from model.ppg.carla.policy_std_model import PolicyModel
+from model.ppg.carla.value_model import ValueModel
+from model.ppg.carla.projection_model import ProjectionModel
 from memory.policy.image_state.standard import ImageStatePolicyMemory
-from memory.aux_ppg.image_state.standard import auxPpgImageStateMemory
-from memory.aux_clr.standard import auxClrMemory
+from memory.aux_ppg.image_state.standard import ImageStateAuxPpgMemory
+from memory.aux_clr.standard import AuxClrMemory
 
 from helpers.pytorch_utils import set_device
 
@@ -74,8 +74,8 @@ Aux_loss            = JointAux
 Clr_loss            = DistancesClr
 Wrapper             = CarlaEnv
 Policy_Memory       = ImageStatePolicyMemory
-Aux_Memory          = auxPpgImageStateMemory
-Clr_Memory          = auxClrMemory
+Aux_Memory          = ImageStateAuxPpgMemory
+Clr_Memory          = AuxClrMemory
 Advantage_Function  = GeneralizedAdvantageEstimation
 Agent               = AgentImageStatePPGClr
 
