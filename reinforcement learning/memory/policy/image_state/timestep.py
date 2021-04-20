@@ -2,7 +2,7 @@ import torch
 import torchvision.transforms as transforms
 from memory.policy.standard import PolicyMemory
 
-class TimestepISPMemory(PolicyMemory):
+class TimeImageStatePolicyMemory(PolicyMemory):
     def __init__(self, datas = None):
         if datas is None :
             self.images         = []

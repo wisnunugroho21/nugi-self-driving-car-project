@@ -1,8 +1,8 @@
 import torch
 import torchvision.transforms as transforms
-from memory.aux_ppg.standard import auxPpgMemory
+from memory.aux_ppg.standard import AuxPpgMemory
 
-class TimestepAPISMemory(auxPpgMemory):
+class TimeImageStateAuxPpgMemory(AuxPpgMemory):
     def __init__(self, datas = None):
         if datas is None :
             self.images         = []

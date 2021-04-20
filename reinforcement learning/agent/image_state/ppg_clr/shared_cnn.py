@@ -28,8 +28,6 @@ class AgentImageStatePPGClr(AgentPPG):
         self.aux_clr_scaler     = torch.cuda.amp.GradScaler()
         self.aux_clr_epochs     = aux_clr_epochs
 
-        self.soft_tau = 0.95
-
         if self.is_training_mode:
             self.cnn.train()
             self.projector.train()

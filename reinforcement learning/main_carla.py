@@ -9,17 +9,17 @@ from torch.optim.adam import Adam
 
 from eps_runner.iteration.carla import CarlaRunner
 from train_executor.executor import Executor
-from agent.image_state.ppg import AgentImageStatePPG
+from agent.image_state.ppg.shared_cnn import AgentImageStatePPG
 from distribution.basic_continous import BasicContinous
 from environment.custom.carla.carla_rgb import CarlaEnv
 from loss.other.joint_aux import JointAux
 from loss.ppo.truly_ppo import TrulyPPO
 from policy_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
-from model.ppg.CarlaSharedCnn.cnn_model import CnnModel
-from model.ppg.CarlaSharedCnn.policy_std_model import PolicyModel
-from model.ppg.CarlaSharedCnn.value_model import ValueModel
+from model.ppg.carla.cnn_model import CnnModel
+from model.ppg.carla.policy_std_model import PolicyModel
+from model.ppg.carla.value_model import ValueModel
 from memory.policy.image_state.standard import ImageStatePolicyMemory
-from memory.aux_ppg.image_state.standard import auxPpgImageStateMemory
+from memory.aux_ppg.image_state.standard import ImageStateAuxPpgMemory
 
 from helpers.pytorch_utils import set_device
 
@@ -45,8 +45,8 @@ value_clip              = 10.0
 entropy_coef            = 1.0
 vf_loss_coef            = 1.0
 batch_size              = 32
-PPO_epochs              = 10
-Aux_epochs              = 10
+PPO_epochs              = 5
+Aux_epochs              = 5
 action_std              = 1.0
 gamma                   = 0.95
 learning_rate           = 3e-4
@@ -68,7 +68,7 @@ Policy_loss         = TrulyPPO
 Aux_loss            = JointAux
 Wrapper             = CarlaEnv
 Policy_Memory       = ImageStatePolicyMemory
-Aux_Memory          = auxPpgImageStateMemory
+Aux_Memory          = ImageStateAuxPpgMemory
 Advantage_Function  = GeneralizedAdvantageEstimation
 Agent               = AgentImageStatePPG
 

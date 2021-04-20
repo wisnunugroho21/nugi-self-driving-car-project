@@ -15,12 +15,12 @@ from environment.custom.carla.carla_rgb_timestep import CarlaEnv
 from loss.other.joint_aux import JointAux
 from loss.ppo.truly_ppo import TrulyPPO
 from policy_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
-from model.ppg.carla_lstm.cnn_model import CnnModel
-from model.ppg.carla_lstm.policy_std_model import PolicyModel
-from model.ppg.carla_lstm.value_model import ValueModel
-from model.ppg.carla_lstm.projection_model import ProjectionModel
-from memory.policy.image_state.timestep import TimestepISPMemory
-from memory.aux_ppg.image_state.timestep import TimestepAPISMemory
+from model.ppg.carla.cnn_model import CnnModel
+from model.ppg.carla.policy_std_model import PolicyModel
+from model.ppg.carla.value_model import ValueModel
+from model.ppg.carla.projection_model import ProjectionModel
+from memory.policy.image_state.standard import ImageStatePolicyMemory
+from memory.aux_ppg.image_state.standard import ImageStateAuxPpgMemory
 
 from helpers.pytorch_utils import set_device
 
@@ -68,8 +68,8 @@ Executor            = Executor
 Policy_loss         = TrulyPPO
 Aux_loss            = JointAux
 Wrapper             = CarlaEnv
-Policy_Memory       = TimestepISPMemory
-Aux_Memory          = TimestepAPISMemory
+Policy_Memory       = ImageStatePolicyMemory
+Aux_Memory          = ImageStateAuxPpgMemory
 Advantage_Function  = GeneralizedAdvantageEstimation
 Agent               = AgentImageStatePPG
 

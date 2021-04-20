@@ -9,18 +9,18 @@ from torch.optim.adam import Adam
 
 from eps_runner.iteration.carla import CarlaRunner
 from train_executor.executor import Executor
-from agent.image_state.ppg_shared_cnn import AgentImageStatePPGSharedCnn
+from agent.image_state.ppg.seperate_cnn import AgentImageStatePPG
 from distribution.basic_continous import BasicContinous
-from environment.custom.carla.carla_rgb import CarlaEnv
+from environment.custom.carla.carla_rgb_timestep import CarlaEnv
 from loss.other.joint_aux import JointAux
 from loss.ppo.truly_ppo import TrulyPPO
 from policy_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
-from model.ppg.CarlaSharedCnn.cnn_model import CnnModel
-from model.ppg.CarlaSharedCnn.policy_std_model import PolicyModel
-from model.ppg.CarlaSharedCnn.value_model import ValueModel
-from model.ppg.CarlaSharedCnn.projection_model import ProjectionModel
-from memory.policy.image_state.standard import ImageStatePolicyMemory
-from memory.aux_ppg.image_state.standard import auxPpgImageStateMemory
+from model.ppg.carla_lstm.cnn_model import CnnModel
+from model.ppg.carla_lstm.policy_std_model import PolicyModel
+from model.ppg.carla_lstm.value_model import ValueModel
+from model.ppg.carla_lstm.projection_model import ProjectionModel
+from memory.policy.image_state.timestep import TimeImageStatePolicyMemory
+from memory.aux_ppg.image_state.timestep import TimeImageStateAuxPpgMemory
 
 from helpers.pytorch_utils import set_device
 
@@ -35,7 +35,6 @@ reward_threshold        = 495 # Set threshold for reward. The learning will stop
 
 n_plot_batch            = 1 # How many episode you want to plot the result
 n_iteration             = 1000000 # How many episode you want to run
-n_memory_clr            = 10000
 n_update                = 256 # How many episode before you update the Policy 
 n_aux_update            = 2
 n_saved                 = n_aux_update
@@ -69,10 +68,10 @@ Executor            = Executor
 Policy_loss         = TrulyPPO
 Aux_loss            = JointAux
 Wrapper             = CarlaEnv
-Policy_Memory       = ImageStatePolicyMemory
-Aux_Memory          = auxPpgImageStateMemory
+Policy_Memory       = TimeImageStatePolicyMemory
+Aux_Memory          = TimeImageStateAuxPpgMemory
 Advantage_Function  = GeneralizedAdvantageEstimation
-Agent               = AgentImageStatePPGSharedCnn
+Agent               = AgentImageStatePPG
 
 #####################################################################################################################################################
 
@@ -104,14 +103,19 @@ runner_memory       = Policy_Memory()
 aux_ppg_loss        = Aux_loss(policy_dist)
 ppo_loss            = Policy_loss(policy_dist, advantage_function, policy_kl_range, policy_params, value_clip, vf_loss_coef, entropy_coef, gamma)
 
-cnn                 = Cnn_Model().float().to(set_device(use_gpu))
 policy              = Policy_Model(state_dim, action_dim, use_gpu).float().to(set_device(use_gpu))
 value               = Value_Model(state_dim).float().to(set_device(use_gpu))
-projector           = Projection_Model().float().to(set_device(use_gpu))
-ppo_optimizer       = Adam(list(policy.parameters()) + list(value.parameters()), lr = learning_rate)        
-aux_ppg_optimizer   = Adam(list(policy.parameters()), lr = learning_rate)
 
-agent = Agent(projector, cnn, policy, value, state_dim, action_dim, policy_dist, ppo_loss, aux_ppg_loss, ppo_memory, aux_ppg_memory, 
+cnn_policy          = Cnn_Model().float().to(set_device(use_gpu))
+projector_policy    = Projection_Model().float().to(set_device(use_gpu))
+
+cnn_value           = Cnn_Model().float().to(set_device(use_gpu))
+projector_value     = Projection_Model().float().to(set_device(use_gpu))
+
+ppo_optimizer       = Adam(list(policy.parameters()) + list(value.parameters()) + list(cnn_policy.parameters()) + list(cnn_value.parameters()), lr = learning_rate)        
+aux_ppg_optimizer   = Adam(list(policy.parameters()) + list(cnn_policy.parameters()), lr = learning_rate)
+
+agent = Agent(cnn_policy, cnn_value, policy, value, state_dim, action_dim, policy_dist, ppo_loss, aux_ppg_loss, ppo_memory, aux_ppg_memory,
             ppo_optimizer, aux_ppg_optimizer, ppo_epochs, aux_ppg_epochs, n_aux_update, is_training_mode, policy_kl_range, 
             policy_params, value_clip, entropy_coef, vf_loss_coef, batch_size,  folder, use_gpu)
 

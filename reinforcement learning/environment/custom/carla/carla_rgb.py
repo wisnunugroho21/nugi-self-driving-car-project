@@ -83,7 +83,7 @@ class CarlaEnv():
             cv2.imshow('', i)
             cv2.waitKey(1)
 
-        i = Image.fromarray(i)
+        i = Image.fromarray(i, 'RGB')
         return i
 
     def _process_collision(self, event):
@@ -119,7 +119,7 @@ class CarlaEnv():
         self.cam_sensor = self.world.spawn_actor(self.rgb_cam, carla.Transform(carla.Location(x = 1.6, z = 1.7)), attach_to = self.vehicle)
         self.cam_sensor.listen(self.cam_queue.put)
 
-        for _ in range(4):
+        for _ in range(2):
             self._tick_env()
         
         self.col_sensor = self.world.spawn_actor(self.col_detector, carla.Transform(), attach_to = self.vehicle)
@@ -169,7 +169,7 @@ class CarlaEnv():
 
         elif len(self.crossed_line_hist) > 0 or len(self.collision_hist) > 0:
             done    = True
-            reward  = -1 * kmh
+            reward  = -0.1 * kmh
 
         elif loc.x >= -100 or loc.y >= -10:
             done    = True

@@ -1,10 +1,9 @@
 import copy
 
 import torch
-import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
-from helpers.pytorch_utils import set_device, to_numpy, to_tensor
+from helpers.pytorch_utils import to_numpy
 from agent.standard.ppg import AgentPPG
 
 class AgentImageStatePPG(AgentPPG):
@@ -22,8 +21,6 @@ class AgentImageStatePPG(AgentPPG):
         self.cnn_policy_old         = copy.deepcopy(self.cnn_policy)
         self.cnn_value_old          = copy.deepcopy(self.cnn_value)
         
-        self.soft_tau = 0.95
-
         if self.is_training_mode:
             self.cnn_policy.train()
             self.cnn_value.train()
