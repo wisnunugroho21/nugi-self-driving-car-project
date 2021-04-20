@@ -80,7 +80,7 @@ class CnnModel(nn.Module):
 
       if len(image.shape) == 5:
         n, t, c, h, w = image.shape
-        image = image.transpose(0, 1).view(n * t, c, h, w)
+        image = image.transpose(0, 1).reshape(n * t, c, h, w)
 
       i1  = self.conv1(image)
       i2  = self.conv2(i1)

@@ -20,7 +20,7 @@ class TimestepAPISMemory(auxPpgMemory):
         ])
 
     def __getitem__(self, idx):
-        images  = [self.trans(image) for image in self.images[idx]]
+        images  = torch.stack([self.trans(image) for image in self.images[idx]])
 
         states = super().__getitem__(idx)
         return images, states

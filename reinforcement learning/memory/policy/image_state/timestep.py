@@ -25,8 +25,8 @@ class TimestepISPMemory(PolicyMemory):
         ])
 
     def __getitem__(self, idx):
-        images      = [self.trans(image) for image in self.images[idx]]
-        next_images = [self.trans(next_image) for next_image in self.next_images[idx]]
+        images      = torch.stack([self.trans(image) for image in self.images[idx]])
+        next_images = torch.stack([self.trans(next_image) for next_image in self.next_images[idx]])
 
         states, actions, rewards, dones, next_states = super().__getitem__(idx)
         return images, states, actions, rewards, dones, next_images, next_states
