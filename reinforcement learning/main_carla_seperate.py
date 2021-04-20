@@ -11,7 +11,7 @@ from eps_runner.iteration.carla import CarlaRunner
 from train_executor.executor import Executor
 from agent.image_state.ppg.seperate_cnn import AgentImageStatePPG
 from distribution.basic_continous import BasicContinous
-from environment.custom.carla.carla_rgb_timestep import CarlaEnv
+from environment.custom.carla.carla_rgb import CarlaEnv
 from loss.other.joint_aux import JointAux
 from loss.ppo.truly_ppo import TrulyPPO
 from policy_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
@@ -41,7 +41,7 @@ n_saved                 = n_aux_update
 
 policy_kl_range         = 0.03
 policy_params           = 5
-value_clip              = 20.0
+value_clip              = 5.0
 entropy_coef            = 1.0
 vf_loss_coef            = 1.0
 batch_size              = 32

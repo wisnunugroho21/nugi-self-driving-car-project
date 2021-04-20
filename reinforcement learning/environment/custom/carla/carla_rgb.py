@@ -119,7 +119,7 @@ class CarlaEnv():
         self.cam_sensor = self.world.spawn_actor(self.rgb_cam, carla.Transform(carla.Location(x = 1.6, z = 1.7)), attach_to = self.vehicle)
         self.cam_sensor.listen(self.cam_queue.put)
 
-        for _ in range(2):
+        for _ in range(8):
             self._tick_env()
         
         self.col_sensor = self.world.spawn_actor(self.col_detector, carla.Transform(), attach_to = self.vehicle)

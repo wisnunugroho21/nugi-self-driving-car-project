@@ -16,7 +16,7 @@ from loss.other.joint_aux import JointAux
 from loss.ppo.truly_ppo import TrulyPPO
 from policy_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
 from model.ppg.carla.cnn_model import CnnModel
-from model.ppg.carla.policy_std_model import PolicyModel
+from model.ppg.carla.policy_model import PolicyModel
 from model.ppg.carla.value_model import ValueModel
 from memory.policy.image_state.standard import ImageStatePolicyMemory
 from memory.aux_ppg.image_state.standard import ImageStateAuxPpgMemory
@@ -41,8 +41,8 @@ n_saved                 = n_aux_update
 
 policy_kl_range         = 0.03
 policy_params           = 5
-value_clip              = 10.0
-entropy_coef            = 1.0
+value_clip              = 5.0
+entropy_coef            = 0.0
 vf_loss_coef            = 1.0
 batch_size              = 32
 PPO_epochs              = 5
