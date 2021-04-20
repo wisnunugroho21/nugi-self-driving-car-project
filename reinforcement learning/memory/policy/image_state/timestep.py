@@ -1,8 +1,8 @@
 import torch
 import torchvision.transforms as transforms
-from memory.policy.image_state.standard import ImageStatePolicyMemory
+from memory.policy.standard import PolicyMemory
 
-class TimestepISPMemory(ImageStatePolicyMemory):
+class TimestepISPMemory(PolicyMemory):
     def __init__(self, datas = None):
         if datas is None :
             self.images         = []
