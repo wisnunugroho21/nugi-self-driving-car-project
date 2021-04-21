@@ -72,11 +72,6 @@ class AgentImageStatePPGClr(AgentPPG):
         self.ppo_scaler.scale(loss).backward()
         self.ppo_scaler.step(self.ppo_optimizer)
         self.ppo_scaler.update()
-        
-        self.cnn_policy_old.load_state_dict(self.cnn_policy.state_dict())
-        self.projector_policy_old.load_state_dict(self.projector_policy.state_dict())
-        self.cnn_value_old.load_state_dict(self.cnn_value.state_dict())
-        self.projector_value_old.load_state_dict(self.projector_value.state_dict())
 
     def _training_aux_ppg(self, images, states):
         self.aux_ppg_optimizer.zero_grad()        
@@ -105,8 +100,7 @@ class AgentImageStatePPGClr(AgentPPG):
             res_target        = self.cnn_policy_old(target_images, True)
             encoded_target    = self.projector_policy_old(res_target, True)
 
-            encoded = self.projector_policy.compute_logits(encoded_anchor, encoded_target)
-            loss    = self.aux_clrLoss.compute_loss(encoded)
+            loss    = self.aux_clrLoss.compute_loss(encoded_anchor, encoded_target)
 
         self.aux_policy_clr_scaler.scale(loss).backward()
         self.aux_policy_clr_scaler.step(self.aux_policy_clr_optim)
@@ -120,8 +114,7 @@ class AgentImageStatePPGClr(AgentPPG):
             res_target        = self.cnn_value_old(target_images, True)
             encoded_target    = self.projector_value_old(res_target, True)
 
-            encoded = self.projector_value.compute_logits(encoded_anchor, encoded_target)
-            loss    = self.aux_clrLoss.compute_loss(encoded)
+            loss    = self.aux_clrLoss.compute_loss(encoded_anchor, encoded_target)
 
         self.aux_value_clr_scaler.scale(loss).backward()
         self.aux_value_clr_scaler.step(self.aux_value_clr_optim)
@@ -159,10 +152,10 @@ class AgentImageStatePPGClr(AgentPPG):
         self.aux_ppg_memory.clear_memory()
 
     def _update_aux_clr(self):
-        copy_parameters(self.cnn_policy, self.cnn_policy_old)
-        copy_parameters(self.projector_policy, self.projector_policy_old)
-        copy_parameters(self.cnn_value, self.cnn_value_old)
-        copy_parameters(self.projector_value, self.projector_value_old)
+        self.cnn_policy_old.load_state_dict(self.cnn_policy.state_dict())
+        self.projector_policy_old.load_state_dict(self.projector_policy.state_dict())
+        self.cnn_value_old.load_state_dict(self.cnn_value.state_dict())
+        self.projector_value_old.load_state_dict(self.projector_value.state_dict())
 
         dataloader  = DataLoader(self.aux_clr_memory, self.batch_size, shuffle = True, num_workers = 8)
 
@@ -235,11 +228,6 @@ class AgentImageStatePPGClr(AgentPPG):
         self.aux_ppg_scaler.load_state_dict(model_checkpoint['aux_ppg_scaler_state_dict'])  
         self.aux_policy_clr_scaler.load_state_dict(model_checkpoint['aux_policy_clr_scaler_state_dict'])
         self.aux_value_clr_scaler.load_state_dict(model_checkpoint['aux_value_clr_scaler_state_dict'])
-
-        self.cnn_policy_old.load_state_dict(self.cnn_policy.state_dict())
-        self.projector_policy_old.load_state_dict(self.projector_policy.state_dict())
-        self.cnn_value_old.load_state_dict(self.cnn_value.state_dict())
-        self.projector_value_old.load_state_dict(self.projector_value.state_dict())
 
         if self.is_training_mode:
             self.policy.train()
