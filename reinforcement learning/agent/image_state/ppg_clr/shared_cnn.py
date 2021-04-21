@@ -4,7 +4,7 @@ import torch
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
-from helpers.pytorch_utils import set_device, to_numpy, to_tensor
+from helpers.pytorch_utils import copy_parameters, to_numpy
 from agent.standard.ppg import AgentPPG
 
 class AgentImageStatePPGClr(AgentPPG):
@@ -34,6 +34,9 @@ class AgentImageStatePPGClr(AgentPPG):
         else:
             self.cnn.eval()
             self.projector.eval()
+        
+        self.cnn_old.load_state_dict(self.cnn.state_dict())
+        self.projector_old.load_state_dict(self.projector.state_dict())
 
     def _training_ppo(self, images, states, actions, rewards, dones, next_images, next_states):
         self.ppo_optimizer.zero_grad()
@@ -118,8 +121,8 @@ class AgentImageStatePPGClr(AgentPPG):
         self.aux_ppg_memory.clear_memory()
 
     def _update_aux_clr(self):
-        self.cnn_old.load_state_dict(self.cnn.state_dict())
-        self.projector_old.load_state_dict(self.projector.state_dict())
+        copy_parameters(self.cnn_old, self.cnn)
+        copy_parameters(self.projector_old, self.projector)
 
         dataloader  = DataLoader(self.aux_clr_memory, self.batch_size, shuffle = True, num_workers = 8)
 
@@ -184,6 +187,9 @@ class AgentImageStatePPGClr(AgentPPG):
         self.ppo_scaler.load_state_dict(model_checkpoint['ppo_scaler_state_dict'])        
         self.aux_ppg_scaler.load_state_dict(model_checkpoint['aux_ppg_scaler_state_dict'])  
         self.aux_clr_scaler.load_state_dict(model_checkpoint['aux_clr_scaler_state_dict'])
+
+        self.cnn_old.load_state_dict(self.cnn.state_dict())
+        self.projector_old.load_state_dict(self.projector.state_dict())
 
         if self.is_training_mode:
             self.policy.train()

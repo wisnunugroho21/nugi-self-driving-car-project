@@ -14,7 +14,7 @@ from distribution.basic_continous import BasicContinous
 from environment.custom.carla.carla_rgb import CarlaEnv
 from loss.other.joint_aux import JointAux
 from loss.ppo.truly_ppo import TrulyPPO
-from loss.clr.distances import DistancesClr
+from loss.clr.moco import Moco
 from policy_function.advantage_function.generalized_advantage_estimation import GeneralizedAdvantageEstimation
 from model.ppg.carla.cnn_model import CnnModel
 from model.ppg.carla.policy_std_model import PolicyModel
@@ -71,7 +71,7 @@ Runner              = CarlaRunner
 Executor            = Executor
 Policy_loss         = TrulyPPO
 Aux_loss            = JointAux
-Clr_loss            = DistancesClr
+Clr_loss            = Moco
 Wrapper             = CarlaEnv
 Policy_Memory       = ImageStatePolicyMemory
 Aux_Memory          = ImageStateAuxPpgMemory
