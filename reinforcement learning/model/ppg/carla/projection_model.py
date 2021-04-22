@@ -8,12 +8,12 @@ class ProjectionModel(nn.Module):
       super(ProjectionModel, self).__init__()
 
       self.nn_layer   = nn.Sequential(
-        nn.Linear(128, 128),
+        nn.Linear(128, 64),
         nn.ReLU(),
-        nn.Linear(128, 128)
+        nn.Linear(64, 32),
       )
 
-      self.W = nn.Parameter(torch.rand(128, 128))
+      self.W = nn.Parameter(torch.rand(32, 32))
 
     def forward(self, res, detach = False):      
       if detach:
