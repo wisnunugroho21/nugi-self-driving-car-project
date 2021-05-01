@@ -7,14 +7,14 @@ class PolicyModel(nn.Module):
     def __init__(self, state_dim, action_dim, use_gpu = True):
       super(PolicyModel, self).__init__()
 
-      self.std                  = torch.FloatTensor([1.0, 0.5, 0.5]).to(set_device(use_gpu))
+      self.std                  = torch.FloatTensor([1.0, 1.0, 1.0]).to(set_device(use_gpu))
 
       self.state_extractor      = nn.Sequential( nn.Linear(2, 32), nn.ReLU() )
       self.image_extractor      = nn.Sequential( nn.Linear(128, 128), nn.ReLU() )
       self.nn_layer             = nn.Sequential( nn.Linear(160, 192), nn.ReLU() )
       
       self.actor_steer          = nn.Sequential( nn.Linear(64, 1), nn.Tanh() )
-      self.actor_gas_break      = nn.Sequential( nn.Linear(64, 2), nn.Sigmoid() )
+      self.actor_gas_break      = nn.Sequential( nn.Linear(64, 1), nn.Tanh() )
 
       self.critic_layer         = nn.Sequential( nn.Linear(64, 1) )
         

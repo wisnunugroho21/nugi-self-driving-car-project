@@ -144,9 +144,14 @@ class CarlaEnv():
     def step(self, action):
         prev_loc    = self.vehicle.get_location()
 
-        steer       = -1 if action[0] < -1 else 1 if action[0] > 1 else action[0]
-        throttle    = 0 if action[1] < 0 else 1 if action[1] > 1 else action[1]
-        brake       = 0 if action[2] < 0 else 1 if action[2] > 1 else action[2]
+        steer   = -1 if action[0] < -1 else 1 if action[0] > 1 else action[0]
+        if action[1] >= 0:
+            throttle    = 1 if action[1] > 1 else action[1]
+            brake       = 0
+        else:
+            brake       = (-1 if action[1] < -1 else action[1]) * -1
+            throttle    = 0
+
         self.vehicle.apply_control(carla.VehicleControl(steer = float(steer), throttle = float(throttle), brake = float(brake)))
 
         self._tick_env()

@@ -12,10 +12,10 @@ class PolicyModel(nn.Module):
       self.nn_layer         = nn.Sequential( nn.Linear(160, 192), nn.ReLU() )
       
       self.actor_steer      = nn.Sequential( nn.Linear(64, 1), nn.Tanh() )
-      self.actor_gas_break  = nn.Sequential( nn.Linear(64, 2), nn.Sigmoid() )
+      self.actor_gas_break  = nn.Sequential( nn.Linear(64, 1), nn.Tanh() )
 
       self.std_steer        = nn.Sequential( nn.Linear(64, 1), nn.Sigmoid() )
-      self.std_gas_break    = nn.Sequential( nn.Linear(64, 2), nn.Sigmoid() )
+      self.std_gas_break    = nn.Sequential( nn.Linear(64, 1), nn.Sigmoid() )
 
       self.critic_layer     = nn.Sequential( nn.Linear(64, 1) )
         
@@ -29,7 +29,7 @@ class PolicyModel(nn.Module):
       action_gas_break    = self.actor_gas_break(x[:, 64:128])
 
       std_steer           = self.std_steer(x[:, :64])
-      std_gas_break       = self.std_gas_break(x[:, 64:128]) * 0.5
+      std_gas_break       = self.std_gas_break(x[:, 64:128])
 
       action              = torch.cat((action_steer, action_gas_break), -1)
       std                 = torch.cat((std_steer, std_gas_break), -1)
