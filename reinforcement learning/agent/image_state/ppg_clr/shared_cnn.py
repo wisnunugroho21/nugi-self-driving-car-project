@@ -82,7 +82,7 @@ class AgentImageStatePPGClr(AgentPPG):
             res_target        = self.cnn_old(target_images, True)
             encoded_target    = self.projector_old(res_target, True)
 
-            loss = self.aux_clrLoss.compute_loss(encoded_anchor, encoded_target)
+            loss = (self.aux_clrLoss.compute_loss(encoded_anchor, encoded_target) + self.aux_clrLoss.compute_loss(encoded_target, encoded_anchor)) / 2.0
 
         self.aux_clr_scaler.scale(loss).backward()
         self.aux_clr_scaler.step(self.aux_clr_optimizer)
@@ -134,8 +134,8 @@ class AgentImageStatePPGClr(AgentPPG):
         self.i_update += 1
 
         if self.i_update % self.n_aux_update == 0:
-            self._update_aux_ppg()
             self._update_aux_clr()
+            self._update_aux_ppg()            
             self.i_update = 0
 
     def save_memory(self, policy_memory):

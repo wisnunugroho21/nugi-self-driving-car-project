@@ -100,7 +100,7 @@ class AgentImageStatePPGClr(AgentPPG):
             res_target        = self.cnn_policy_old(target_images, True)
             encoded_target    = self.projector_policy_old(res_target, True)
 
-            loss    = self.aux_clrLoss.compute_loss(encoded_anchor, encoded_target)
+            loss    = (self.aux_clrLoss.compute_loss(encoded_anchor, encoded_target) + self.aux_clrLoss.compute_loss(encoded_target, encoded_anchor)) / 2.0
 
         self.aux_policy_clr_scaler.scale(loss).backward()
         self.aux_policy_clr_scaler.step(self.aux_policy_clr_optim)
@@ -114,7 +114,7 @@ class AgentImageStatePPGClr(AgentPPG):
             res_target        = self.cnn_value_old(target_images, True)
             encoded_target    = self.projector_value_old(res_target, True)
 
-            loss    = self.aux_clrLoss.compute_loss(encoded_anchor, encoded_target)
+            loss    = (self.aux_clrLoss.compute_loss(encoded_anchor, encoded_target) + self.aux_clrLoss.compute_loss(encoded_target, encoded_anchor)) / 2.0
 
         self.aux_value_clr_scaler.scale(loss).backward()
         self.aux_value_clr_scaler.step(self.aux_value_clr_optim)

@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from helpers.pytorch_utils import set_device
 
 class DepthwiseSeparableConv2d(nn.Module):
     def __init__(self, nin, nout, kernel_size = 3, stride = 1, padding = 0, dilation = 1, bias = True, depth_multiplier = 1):
